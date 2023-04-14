@@ -8,10 +8,10 @@ from StreamDeck.Devices.StreamDeckOriginal import StreamDeckOriginal
 from StreamDeck.ImageHelpers import PILHelper
 from StreamDeck.Transport.Transport import TransportError
 
-from streamdeck_ui.display.empty_filter import EmptyFilter
-from streamdeck_ui.display.filter import Filter
-from streamdeck_ui.display.keypress_filter import KeypressFilter
-from streamdeck_ui.display.pipeline import Pipeline
+from .empty_filter import EmptyFilter
+from .filter import Filter
+from .keypress_filter import KeypressFilter
+from .pipeline import Pipeline
 
 
 class DisplayGrid:
@@ -23,7 +23,8 @@ class DisplayGrid:
     _empty_filter: EmptyFilter = EmptyFilter()
     "Static instance of EmptyFilter shared by all pipelines"
 
-    def __init__(self, lock: threading.Lock, streamdeck: StreamDeck, pages: int, cpu_callback: Callable[[str, int], None], fps: int = 25):
+    def __init__(self, lock: threading.Lock, streamdeck: StreamDeck, pages: int,
+                 cpu_callback: Callable[[str, int], None], fps: int = 25):
         """Creates a new display instance
 
         :param lock: A lock object that will be used to get exclusive access while enumerating

@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from streamdeck_ui import api
+from streamdeck_ui_hass import api
 
 api.DeviceManager = MagicMock()
 api.StreamDeck = MagicMock()

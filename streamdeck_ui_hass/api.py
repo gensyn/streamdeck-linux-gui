@@ -11,14 +11,14 @@ from PySide6.QtGui import QImage, QPixmap
 from StreamDeck.Devices import StreamDeck
 from StreamDeck.Transport.Transport import TransportError
 
-from streamdeck_ui.config import CONFIG_FILE_VERSION, DEFAULT_FONT, STATE_FILE
-from streamdeck_ui.dimmer import Dimmer
-from streamdeck_ui.display.display_grid import DisplayGrid
-from streamdeck_ui.display.filter import Filter
-from streamdeck_ui.display.image_filter import ImageFilter
-from streamdeck_ui.display.pulse_filter import PulseFilter
-from streamdeck_ui.display.text_filter import TextFilter
-from streamdeck_ui.stream_deck_monitor import StreamDeckMonitor
+from config import CONFIG_FILE_VERSION, DEFAULT_FONT, STATE_FILE
+from dimmer import Dimmer
+from display.display_grid import DisplayGrid
+from display.filter import Filter
+from display.image_filter import ImageFilter
+from display.pulse_filter import PulseFilter
+from display.text_filter import TextFilter
+from stream_deck_monitor import StreamDeckMonitor
 
 
 class KeySignalEmitter(QObject):
@@ -45,7 +45,7 @@ class StreamDeckServer:
         self.deck_ids: Dict[str, str] = {}
         "Lookup with device.id -> serial number"
 
-        self.state: Dict[str, Dict[str, Union[int, str, Dict[int, Dict[int, Dict[str, str]]]]]] = {}
+        self.state: Dict[str, str | bool | Dict[str, Union[int, str, Dict[int, Dict[int, Dict[str, str]]]]]] = {}
         "The data structure holding configuration for all Stream Decks"
 
         # REVIEW: Should we use the same lock as the display? What exactly
@@ -72,6 +72,13 @@ class StreamDeckServer:
 
         self.monitor: Optional[StreamDeckMonitor] = None
         "Monitors for Stream Deck(s) attached to the computer"
+
+        self.hass = None
+
+        self.button_clicked = False
+
+    def set_hass(self, hass):
+        self.hass = hass
 
     def stop_dimmer(self, serial_number: str) -> None:
         """Stops the dimmer for the given Stream Deck
@@ -135,11 +142,11 @@ class StreamDeckServer:
 
     def get_display_timeout(self, deck_id: str) -> int:
         """Returns the amount of time in seconds before the display gets dimmed."""
-        return cast(int, self.state.get(deck_id, {}).get("display_timeout", 0))
+        return cast(int, self.state.get("decks", {}).get(deck_id, {}).get("display_timeout", 0))
 
     def set_display_timeout(self, deck_id: str, timeout: int) -> None:
         """Sets the amount of time in seconds before the display gets dimmed."""
-        self.state.setdefault(deck_id, {})["display_timeout"] = timeout
+        self.state.setdefault("decks", {}).setdefault(deck_id, {})["display_timeout"] = timeout
         self.dimmers[deck_id].timeout = timeout
         self._save_state()
 
@@ -151,12 +158,33 @@ class StreamDeckServer:
             config = json.loads(state_file.read())
             file_version = config.get("streamdeck_ui_version", 0)
             if file_version != CONFIG_FILE_VERSION:
-                raise ValueError("Incompatible version of config file found: " f"{file_version} does not match required version " f"{CONFIG_FILE_VERSION}.")
+                raise ValueError(
+                    "Incompatible version of config file found: " f"{file_version} does not match required version " f"{CONFIG_FILE_VERSION}.")
 
-            self.state = {}
-            for deck_id, deck in config["state"].items():
-                deck["buttons"] = {int(page_id): {int(button_id): button for button_id, button in buttons.items()} for page_id, buttons in deck.get("buttons", {}).items()}
-                self.state[deck_id] = deck
+            self.state = {"decks": {}}
+
+            for deck_id, deck in config["state"].get("decks", {}).items():
+                deck["buttons"] = {int(page_id): {int(button_id): button for button_id, button in buttons.items()} for
+                                   page_id, buttons in deck.get("buttons", {}).items()}
+
+                self.state["decks"][deck_id] = deck
+
+            hass_url = config["state"].get("hass_url", "")
+            hass_token = config["state"].get("hass_token", "")
+            hass_port = config["state"].get("hass_port", "")
+            hass_ssl = config["state"].get("hass_ssl", True)
+
+            self.hass.set_url(hass_url)
+            self.hass.set_token(hass_token)
+            self.hass.set_port(hass_port)
+            self.hass.set_ssl(hass_ssl)
+
+            self.state["hass_url"] = hass_url
+            self.state["hass_token"] = hass_token
+            self.state["hass_port"] = hass_port
+            self.state["hass_ssl"] = hass_ssl
+
+            self.hass.connect()
 
     def import_config(self, config_file: str) -> None:
         self.stop()
@@ -167,7 +195,9 @@ class StreamDeckServer:
     def export_config(self, output_file: str) -> None:
         try:
             with open(output_file + ".tmp", "w") as state_file:
-                state_file.write(json.dumps({"streamdeck_ui_version": CONFIG_FILE_VERSION, "state": self.state}, indent=4, separators=(",", ": ")))
+                state_file.write(
+                    json.dumps({"streamdeck_ui_version": CONFIG_FILE_VERSION, "state": self.state}, indent=4,
+                               separators=(",", ": ")))
         except Exception as error:
             print(f"The configuration file '{output_file}' was not updated. Error: {error}")
             raise
@@ -195,7 +225,9 @@ class StreamDeckServer:
         )
         self.dimmers[serial_number].reset()
 
-        self.plugevents.attached.emit({"id": streamdeck_id, "serial_number": serial_number, "type": streamdeck.deck_type(), "layout": streamdeck.key_layout()})
+        self.plugevents.attached.emit(
+            {"id": streamdeck_id, "serial_number": serial_number, "type": streamdeck.deck_type(),
+             "layout": streamdeck.key_layout()})
 
     def initialize_state(self, serial_number: str, buttons: int):
         """Initializes the state for the given serial number. This allocates
@@ -244,6 +276,7 @@ class StreamDeckServer:
 
     def stop(self):
         self.monitor.stop()
+        self.hass.disconnect()
 
     def get_deck(self, deck_id: str) -> Dict[str, Dict[str, Union[str, Tuple[int, int]]]]:
         """Returns a dictionary with some Stream Deck properties
@@ -256,22 +289,22 @@ class StreamDeckServer:
         return {"type": self.decks[deck_id].deck_type(), "layout": self.decks[deck_id].key_layout()}
 
     def _button_state(self, deck_id: str, page: int, button: int) -> dict:
-        buttons = self.state.setdefault(deck_id, {}).setdefault("buttons", {})
+        buttons = self.state.setdefault("decks", {}).setdefault(deck_id, {}).setdefault("buttons", {})
         buttons_state = buttons.setdefault(page, {})  # type: ignore
         return buttons_state.setdefault(button, {})  # type: ignore
 
     def swap_buttons(self, deck_id: str, page: int, source_button: int, target_button: int) -> None:
         """Swaps the properties of the source and target buttons"""
-        temp = cast(dict, self.state[deck_id]["buttons"])[page][source_button]
-        cast(dict, self.state[deck_id]["buttons"])[page][source_button] = cast(dict, self.state[deck_id]["buttons"])[page][target_button]
-        cast(dict, self.state[deck_id]["buttons"])[page][target_button] = temp
+        temp = cast(dict, self.state["decks"][deck_id]["buttons"])[page][source_button]
+        cast(dict, self.state["decks"][deck_id]["buttons"])[page][source_button] = \
+            cast(dict, self.state["decks"][deck_id]["buttons"])[page][target_button]
+        cast(dict, self.state["decks"][deck_id]["buttons"])[page][target_button] = temp
         self._save_state()
 
         # Update rendering for these two images
         self.update_button_filters(deck_id, page, source_button)
         self.update_button_filters(deck_id, page, target_button)
-        display_handler = self.display_handlers[deck_id]
-        display_handler.synchronize()
+        self.synchronize_display_filter(deck_id)
 
     def set_button_text(self, deck_id: str, page: int, button: int, text: str) -> None:
         """Set the text associated with a button"""
@@ -279,8 +312,7 @@ class StreamDeckServer:
             self._button_state(deck_id, page, button)["text"] = text
             self._save_state()
             self.update_button_filters(deck_id, page, button)
-            display_handler = self.display_handlers[deck_id]
-            display_handler.synchronize()
+            self.synchronize_display_filter(deck_id)
 
     def get_button_text(self, deck_id: str, page: int, button: int) -> str:
         """Returns the text set for the specified button"""
@@ -293,8 +325,7 @@ class StreamDeckServer:
             self._button_state(deck_id, page, button)["icon"] = icon
             self._save_state()
             self.update_button_filters(deck_id, page, button)
-            display_handler = self.display_handlers[deck_id]
-            display_handler.synchronize()
+            self.synchronize_display_filter(deck_id)
 
     def get_text_vertical_align(self, serial_number: str, page: int, button: int) -> str:
         """Gets the vertical text alignment. Values are bottom, middle-bottom, middle, middle-top, top
@@ -310,11 +341,11 @@ class StreamDeckServer:
         """
         return self._button_state(serial_number, page, button).get("text_vertical_align", "")
 
-    def set_text_vertical_align(self, serial_number: str, page: int, button: int, alignment: str) -> None:
+    def set_text_vertical_align(self, deck_id: str, page: int, button: int, alignment: str) -> None:
         """Gets the vertical text alignment. Values are top, middle, bottom
 
-        :param serial_number: The Stream Deck serial number.
-        :type serial_number: str
+        :param deck_id: The Stream Deck serial number.
+        :type deck_id: str
         :param page: The page the button is on
         :type page: int
         :param button: The button index
@@ -322,12 +353,11 @@ class StreamDeckServer:
         :return: The vertical alignment setting
         :rtype: str
         """
-        if self.get_text_vertical_align(serial_number, page, button) != alignment:
-            self._button_state(serial_number, page, button)["text_vertical_align"] = alignment
+        if self.get_text_vertical_align(deck_id, page, button) != alignment:
+            self._button_state(deck_id, page, button)["text_vertical_align"] = alignment
             self._save_state()
-            self.update_button_filters(serial_number, page, button)
-            display_handler = self.display_handlers[serial_number]
-            display_handler.synchronize()
+            self.update_button_filters(deck_id, page, button)
+            self.synchronize_display_filter(deck_id)
 
     def get_button_icon_pixmap(self, deck_id: str, page: int, button: int) -> Optional[QPixmap]:
         """Returns the QPixmap value for the given button (streamdeck, page, button)
@@ -342,9 +372,9 @@ class StreamDeckServer:
         :rtype: Optional[QPixmap]
         """
 
-        pil_image = self.display_handlers[deck_id].get_image(page, button)
-        if pil_image:
-            qt_image = ImageQt(pil_image)
+        deck = self.display_handlers.get(deck_id, None)
+        if deck:
+            qt_image = ImageQt(deck.get_image(page, button))
             qt_image = qt_image.convertToFormat(QImage.Format.Format_ARGB32)
             return QPixmap(qt_image)
         return None
@@ -372,6 +402,69 @@ class StreamDeckServer:
     def get_button_command(self, deck_id: str, page: int, button: int) -> str:
         """Returns the command set for the specified button"""
         return self._button_state(deck_id, page, button).get("command", "")
+
+    def set_button_hass_domain(self, deck_id: str, page: int, button: int, hass_domain: str) -> None:
+        if self.button_clicked:
+            # Don't save change when a button was clicked
+            return
+
+        """Sets the Home Assistant domain associated with the button"""
+        old = self.get_button_hass_domain(deck_id, page, button)
+
+        if old != hass_domain:
+            self._button_state(deck_id, page, button)["hass_domain"] = hass_domain
+            self._save_state()
+
+    def get_button_hass_domain(self, deck_id: str, page: int, button: int) -> str:
+        """Returns the Home Assistant domain set for the specified button"""
+        return self._button_state(deck_id, page, button).get("hass_domain", "")
+
+    def set_button_hass_entity(self, deck_id: str, page: int, button: int, hass_entity: str) -> None:
+        if self.button_clicked:
+            # Don't save change when a button was clicked
+            return
+
+        """Sets the Home Assistant entity associated with the button"""
+        old = self.get_button_hass_entity(deck_id, page, button)
+
+        if old != hass_entity:
+            self._button_state(deck_id, page, button)["hass_entity"] = hass_entity
+
+            if old:
+                self.hass.remove_tracked_entity(old, deck_id, page, button)
+
+            self.hass.add_tracked_entity(hass_entity, deck_id, page, button)
+            self._save_state()
+
+            if hass_entity:
+                self.set_button_icon(deck_id, page, button,
+                                     self.hass.get_icon(hass_entity,
+                                                        self.get_button_hass_service(deck_id, page, button)))
+            else:
+                self.set_button_icon(deck_id, page, button, "")
+
+    def get_button_hass_entity(self, deck_id: str, page: int, button: int) -> str:
+        """Returns the Home Assistant entity set for the specified button"""
+        return self._button_state(deck_id, page, button).get("hass_entity", "")
+
+    def set_button_hass_service(self, deck_id: str, page: int, button: int, hass_service: str) -> None:
+        if self.button_clicked:
+            # Don't save change when a button was clicked
+            return
+
+        """Sets the Home Assistant service associated with the button"""
+        old = self.get_button_hass_service(deck_id, page, button)
+
+        if old != hass_service:
+            self._button_state(deck_id, page, button)["hass_service"] = hass_service
+            self._save_state()
+
+            self.set_button_icon(deck_id, page, button,
+                                 self.hass.get_icon(self.get_button_hass_entity(deck_id, page, button), hass_service))
+
+    def get_button_hass_service(self, deck_id: str, page: int, button: int) -> str:
+        """Returns the Home Assistant service set for the specified button"""
+        return self._button_state(deck_id, page, button).get("hass_service", "")
 
     def set_button_switch_page(self, deck_id: str, page: int, button: int, switch_page: int) -> None:
         """Sets the page switch associated with the button"""
@@ -407,22 +500,54 @@ class StreamDeckServer:
         """Sets the brightness for every button on the deck"""
         if self.get_brightness(deck_id) != brightness:
             self.decks[deck_id].set_brightness(brightness)
-            self.state.setdefault(deck_id, {})["brightness"] = brightness
+            self.state.setdefault("decks", {}).setdefault(deck_id, {})["brightness"] = brightness
             self._save_state()
 
     def get_brightness(self, deck_id: str) -> int:
         """Gets the brightness that is set for the specified stream deck"""
-        return self.state.get(deck_id, {}).get("brightness", 100)  # type: ignore
+        return self.state.get("decks", {}).get(deck_id, {}).get("brightness", 100)  # type: ignore
 
     def get_brightness_dimmed(self, deck_id: str) -> int:
         """Gets the percentage value of the full brightness that is used when dimming the specified
         stream deck"""
-        return self.state.get(deck_id, {}).get("brightness_dimmed", 0)  # type: ignore
+        return self.state.get("decks", {}).get(deck_id, {}).get("brightness_dimmed", 0)  # type: ignore
 
     def set_brightness_dimmed(self, deck_id: str, brightness_dimmed: int) -> None:
         """Sets the percentage value that will be used for dimming the full brightness"""
-        self.state.setdefault(deck_id, {})["brightness_dimmed"] = brightness_dimmed
+        self.state.setdefault("decks", {}).setdefault(deck_id, {})["brightness_dimmed"] = brightness_dimmed
         self._save_state()
+
+    def get_hass_url(self) -> str:
+        return self.state.get("hass_url", "")  # type: ignore
+
+    def set_hass_url(self, hass_url: str) -> None:
+        self.state["hass_url"] = hass_url
+        self._save_state()
+        self.hass.set_url(hass_url)
+
+    def get_hass_token(self) -> str:
+        return self.state.get("hass_token", "")  # type: ignore
+
+    def set_hass_token(self, hass_token: str) -> None:
+        self.state["hass_token"] = hass_token
+        self._save_state()
+        self.hass.set_token(hass_token)
+
+    def get_hass_port(self) -> str:
+        return self.state.get("hass_port", "")  # type: ignore
+
+    def set_hass_port(self, hass_port: str) -> None:
+        self.state["hass_port"] = hass_port
+        self._save_state()
+        self.hass.set_port(hass_port)
+
+    def get_hass_ssl(self) -> bool:
+        return self.state.get("hass_ssl", True)  # type: ignore
+
+    def set_hass_ssl(self, hass_ssl: bool) -> None:
+        self.state["hass_ssl"] = hass_ssl
+        self._save_state()
+        self.hass.set_ssl(hass_ssl)
 
     def change_brightness(self, deck_id: str, amount: int = 1) -> None:
         """Change the brightness of the deck by the specified amount"""
@@ -433,12 +558,12 @@ class StreamDeckServer:
 
     def get_page(self, deck_id: str) -> int:
         """Gets the current page shown on the stream deck"""
-        return self.state.get(deck_id, {}).get("page", 0)  # type: ignore
+        return self.state.get("decks", {}).get(deck_id, {}).get("page", 0)  # type: ignore
 
     def set_page(self, deck_id: str, page: int) -> None:
         """Sets the current page shown on the stream deck"""
         if self.get_page(deck_id) != page:
-            self.state.setdefault(deck_id, {})["page"] = page
+            self.state.setdefault("decks", {}).setdefault(deck_id, {})["page"] = page
             self._save_state()
 
         display_handler = self.display_handlers[deck_id]
@@ -446,7 +571,7 @@ class StreamDeckServer:
         # Let the display know to process new set of pipelines
         display_handler.set_page(page)
         # Wait for at least one cycle
-        display_handler.synchronize()
+        self.synchronize_display_filter(deck_id)
 
     def update_streamdeck_filters(self, serial_number: str):
         """Updates the filters for all the StreamDeck buttons.
@@ -455,7 +580,7 @@ class StreamDeckServer:
         :type serial_number: str
         """
 
-        for deck_id, deck_state in self.state.items():
+        for deck_id, deck_state in self.state.get("decks", {}).items():
             deck = self.decks.get(deck_id, None)
 
             # Deck is not attached right now
@@ -470,7 +595,8 @@ class StreamDeckServer:
             # the type hinting is defined causes it to believe there *may* not be a list
             pages = len(deck_state["buttons"])  # type: ignore
 
-            display_handler = self.display_handlers.get(serial_number, DisplayGrid(self.lock, deck, pages, self.cpu_usage_callback))
+            display_handler = self.display_handlers.get(serial_number,
+                                                        DisplayGrid(self.lock, deck, pages, self.cpu_usage_callback))
             display_handler.set_page(self.get_page(deck_id))
             self.display_handlers[serial_number] = display_handler
 
@@ -492,7 +618,11 @@ class StreamDeckServer:
         :param size: The size of the image. This will be refactored out. defaults to (72, 72)
         :type size: tuple, optional
         """
-        display_handler = self.display_handlers[serial_number]
+        display_handler = self.display_handlers.get(serial_number, None)
+
+        if not display_handler:
+            return
+
         button_settings = self._button_state(serial_number, page, button)
         filters: List[Filter] = []
 
@@ -512,3 +642,9 @@ class StreamDeckServer:
             filters.append(TextFilter(text, font, vertical_align))
 
         display_handler.replace(page, button, filters)
+
+    def synchronize_display_filter(self, deck_id: str) -> None:
+        handler = self.display_handlers.get(deck_id, None)
+
+        if handler:
+            handler.synchronize()

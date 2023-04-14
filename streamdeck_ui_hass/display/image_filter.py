@@ -7,7 +7,7 @@ import cairosvg
 import filetype
 from PIL import Image, ImageSequence
 
-from streamdeck_ui.display.filter import Filter
+from .filter import Filter
 
 
 class ImageFilter(Filter):
@@ -26,36 +26,42 @@ class ImageFilter(Filter):
         frame_hash = []
 
         try:
-            kind = filetype.guess(self.file)
-            if kind is None:
-                svg_code = open(self.file).read()
-                png = cairosvg.svg2png(svg_code, output_height=size[1], output_width=size[0])
+            if "<svg " in self.file:
+                png = cairosvg.svg2png(self.file, output_height=size[1], output_width=size[0])
                 image_file = BytesIO(png)
                 image = Image.open(image_file)
                 frame_duration.append(-1)
                 frame_hash.append(image_hash)
             else:
-                image = Image.open(self.file)
-                image.seek(0)
-                # Frame number is used to create unique hash
-                frame_number = 1
-                while True:
-                    try:
-                        frame_duration.append(image.info["duration"])
-                        # Create tuple and hash it, to combine the image and frame hashcodes
-                        frame_hash.append(hash((image_hash, frame_number)))
-                        image.seek(image.tell() + 1)
-                        frame_number += 1
-                    except EOFError:
-                        # Reached the final frame
-                        break
-                    except KeyError:
-                        # If the key 'duration' can't be found, it's not an animation
-                        frame_duration.append(-1)
-                        frame_hash.append(image_hash)
-                        break
-
-        except OSError as icon_error:
+                kind = filetype.guess(self.file)
+                if kind is None:
+                    svg_code = open(self.file).read()
+                    png = cairosvg.svg2png(svg_code, output_height=size[1], output_width=size[0])
+                    image_file = BytesIO(png)
+                    image = Image.open(image_file)
+                    frame_duration.append(-1)
+                    frame_hash.append(image_hash)
+                else:
+                    image = Image.open(self.file)
+                    image.seek(0)
+                    # Frame number is used to create unique hash
+                    frame_number = 1
+                    while True:
+                        try:
+                            frame_duration.append(image.info["duration"])
+                            # Create tuple and hash it, to combine the image and frame hashcodes
+                            frame_hash.append(hash((image_hash, frame_number)))
+                            image.seek(image.tell() + 1)
+                            frame_number += 1
+                        except EOFError:
+                            # Reached the final frame
+                            break
+                        except KeyError:
+                            # If the key 'duration' can't be found, it's not an animation
+                            frame_duration.append(-1)
+                            frame_hash.append(image_hash)
+                            break
+        except (OSError, IOError) as icon_error:
             # FIXME: caller should handle this?
             print(f"Unable to load icon {self.file} with error {icon_error}")
             image = Image.new("RGB", size)
@@ -77,7 +83,7 @@ class ImageFilter(Filter):
 
     def transform(self, get_input: Callable[[], Image.Image], get_output: Callable[[int], Image.Image], input_changed: bool, time: Fraction) -> Tuple[Image.Image, int]:
         """
-        The transformation returns the loaded image, ando overwrites whatever came before.
+        The transformation returns the loaded image, and overwrites whatever came before.
         """
 
         # Unpack tuple to make code a bit easier to understand

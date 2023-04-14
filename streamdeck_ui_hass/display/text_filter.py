@@ -4,8 +4,8 @@ from typing import Callable, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-from streamdeck_ui.config import FONTS_PATH
-from streamdeck_ui.display.filter import Filter
+from streamdeck_ui_hass.config import FONTS_PATH
+from .filter import Filter
 
 
 class TextFilter(Filter):
