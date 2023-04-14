@@ -6,8 +6,8 @@
       "full_name": "Timothy Crosley",
       "email": "timothy.crosley@gmail.com",
       "github_username": "timothycrosley",
-      "project_name": "streamdeck_ui",
-      "description": "A service, Web Interface, and UI for interacting with your computer using a Stream Deck",
+      "project_name": "streamdeck_ui_hass",
+      "description": "A service, Web Interface, and UI for interacting with your computer using a Stream Deck with Home Assistant support",
       "version": "0.0.1",
       "_template": "https://github.com/timothycrosley/cookiecutter-python/"
     }

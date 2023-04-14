@@ -3,10 +3,10 @@ from typing import Callable, Tuple
 
 from PIL import Image
 
-from streamdeck_ui.display import filter
+from .filter import Filter
 
 
-class EmptyFilter(filter.Filter):
+class EmptyFilter(Filter):
     """
     This is the empty (base) filter where all pipelines start from.
 
@@ -25,7 +25,8 @@ class EmptyFilter(filter.Filter):
     def initialize(self, size: Tuple[int, int]):
         self.image = Image.new("RGB", size)
 
-    def transform(self, get_input: Callable[[], Image.Image], get_output: Callable[[int], Image.Image], input_changed: bool, time: Fraction) -> Tuple[Image.Image, int]:
+    def transform(self, get_input: Callable[[], Image.Image], get_output: Callable[[int], Image.Image],
+                  input_changed: bool, time: Fraction) -> Tuple[Image.Image, int]:
         """
         Returns an empty Image object.
 

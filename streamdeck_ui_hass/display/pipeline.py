@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 
 from PIL.Image import Image
 
-from streamdeck_ui.display.filter import Filter
+from .filter import Filter
 
 
 class Pipeline:
