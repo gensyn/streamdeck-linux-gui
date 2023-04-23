@@ -1,3 +1,36 @@
+## How to use this fork
+
+Unlike Streamdeck UI, this fork is not available via PIP so you have to clone or download this repository, e.g. with
+> git clone https://github.com/Gensyn/streamdeck-ui-hass.git
+
+Install all requirements:
+> pip install -r /path/to/streamdeck-ui-hass/requirements.txt
+
+For all paths to resolve correctly you need to add the folder to your python path. You can start the application like this:
+> PYTHONPATH=$PYTHONPATH:/path/to/streamdeck-ui-hass python3 /path/to/streamdeck-ui-hass/streamdeck_ui_hass/__main__.py
+
+Instead of updating the python path every time manually, instead you can add the update to the .bashrc file in your home folder:
+> PYTHONPATH=$PYTHONPATH:/path/to/streamdeck-ui-hass
+
+The config file structure of this fork is not compatible with the original Streamdeck UI, so you will find no buttons configured on your first start (your config for the original Streamdeck UI will remain untouched).
+
+In the menu bar you will find a new entry "Settings" with only one option: "Home Assistant":
+
+![The new menu](art/menu.png)
+
+Clicking on "Home Assistant" will open a settings window:
+
+![The new settings](art/settings.png)
+
+Enter your server's address and your [long-lived access token for Home Assistant](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) as well as your port and wether to use SSL.
+On clicking "OK" the connection is established and if successful, new options for buttons appear:
+
+![HASS options for buttons](art/hass.png)
+
+First you need to select a domain, afterwards you can select an entity and a service for this domain. If your entity has a custom icon it is automatically set as the buttons icon. Streamdeck UI HASS also trys to interpret the entity's state as either "on" or "off". The state "on" gets a yellow icon, "off" is gray. Entities from the domain "media_player" get a special treatment: the icon is also based on the selected service.
+
+## Original Streamdeck UI
+
 [![streamdeck_ui - Linux compatible UI for the Elgato Stream Deck](art/logo_large.png)](https://timothycrosley.github.io/streamdeck-ui/)
 _________________
 
