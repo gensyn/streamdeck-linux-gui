@@ -22,7 +22,7 @@ Clicking on "Home Assistant" will open a settings window:
 
 ![The new settings](art/settings.png)
 
-Enter your server's address and your [long-lived access token for Home Assistant](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) as well as your port and wether to use SSL.
+Enter your server's address and your [long-lived access token for Home Assistant](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) as well as your port and whether to use SSL.
 You need to have `websocket_api` enabled in your Home Assistant configuration!
 On clicking "OK" the connection is established and if successful, new options for buttons appear:
 
