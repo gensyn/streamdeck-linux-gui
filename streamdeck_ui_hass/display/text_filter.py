@@ -14,11 +14,11 @@ class TextFilter(Filter):
 
     image: Image
 
-    def __init__(self, text: str, font: str, vertical_align: str):
+    def __init__(self, text: str, font: str, vertical_align: str, font_size: int = 14):
         super(TextFilter, self).__init__()
         self.text = text
         self.vertical_align = vertical_align
-        self.true_font = ImageFont.truetype(os.path.join(FONTS_PATH, font), 14)
+        self.true_font = ImageFont.truetype(os.path.join(FONTS_PATH, font), font_size)
         # fmt: off
         kernel = [
             0, 1, 2, 1, 0,

@@ -144,9 +144,16 @@ class HomeAssistant:
 
                                 service = self._api.get_button_hass_service(deck_id, page, button)
 
-                                icon = await self._async_get_icon(entity_id, service=service)
+                                state = await self._async_get_state(entity_id)
 
-                                self._api.set_button_icon(deck_id, page, button, icon)
+                                domain = entity_id.split(".")[0]
+
+                                if self.is_button_icon(state, domain):
+                                    icon = await self._async_get_icon(entity_id, service, state)
+
+                                    self._api.set_button_icon(deck_id, page, button, icon)
+                                else:
+                                    self._api.set_button_text(deck_id, page, button, state)
 
             if self._main_window:
                 self._main_window.ui.label_statusbar.setText("Connected to Home Assistant")
@@ -232,9 +239,16 @@ class HomeAssistant:
 
                     service = self._api.get_button_hass_service(deck_id, page, button)
 
-                    icon = await self._async_get_icon(entity_id, service=service, state=new_state.get("state"))
+                    state = new_state.get("state")
 
-                    self._api.set_button_icon(deck_id, page, button, icon)
+                    domain = entity_id.split(".")[0]
+
+                    if self.is_button_icon(state, domain):
+                        icon = await self._async_get_icon(entity_id, service, new_state.get("state"))
+
+                        self._api.set_button_icon(deck_id, page, button, icon)
+                    else:
+                        self._api.set_button_text(deck_id, page, button, state)
 
                     if self._main_window and self._api.display_handlers.get(deck_id, False):
                         self._main_window.redraw_buttons()
@@ -248,7 +262,7 @@ class HomeAssistant:
         return asyncio.run_coroutine_threadsafe(self._async_get_icon(entity_id, service, state),
                                                 self._loop).result()
 
-    async def _async_get_icon(self, entity_id: str, service: str, state: str = None) -> str:
+    async def _async_get_icon(self, entity_id: str, service: str, state: str) -> str:
         if not entity_id:
             return ""
 
@@ -257,9 +271,6 @@ class HomeAssistant:
         if "media_player" == domain:
             # use icons for service instead of entity
             if "media_play_pause" == service:
-                if not state:
-                    state = await self._async_get_state(entity_id)
-
                 if "playing" == state:
                     icon_name = "pause"
                 else:
@@ -289,9 +300,6 @@ class HomeAssistant:
 
             icon_text = entity.get("icon", "None")
             icon = self._get_icon_svg(entity_id, icon_text)
-
-            if not state:
-                state = await self._async_get_state(entity_id)
 
             color = COLOR_ON if "on" == state else COLOR_OFF
 
@@ -570,6 +578,9 @@ class HomeAssistant:
                 break
 
         return response
+
+    def is_button_icon(self, state: str, domain: str) -> bool:
+        return state in ["on", "off"] or domain in ["media_player"]
 
 
 def _encode_deck_id_page_button(deck_id: str, page: int, button: int) -> str:
