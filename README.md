@@ -7,9 +7,9 @@ Install all requirements:
 > pip install -r /path/to/streamdeck-ui-hass/requirements.txt
 
 For all paths to resolve correctly you need to add the folder to your python path. You can start the application like this:
-> PYTHONPATH=$PYTHONPATH:/path/to/streamdeck-ui-hass python3 /path/to/streamdeck-ui-hass/streamdeck_ui_hass/__main__.py
+> PYTHONPATH=$PYTHONPATH:/path/to/streamdeck-ui-hass python3 /path/to/streamdeck-ui-hass/streamdeck_ui_hass/\_\_main\_\_.py
 
-Instead of updating the python path every time manually, instead you can add the update to the .bashrc file in your home folder:
+Instead of updating the python path every time manually, you can add the update to the `.bashrc` file in your home folder:
 > PYTHONPATH=$PYTHONPATH:/path/to/streamdeck-ui-hass
 
 The config file structure of this fork is not compatible with the original Streamdeck UI, so you will find no buttons configured on your first start (your config for the original Streamdeck UI will remain untouched).
@@ -22,12 +22,13 @@ Clicking on "Home Assistant" will open a settings window:
 
 ![The new settings](art/settings.png)
 
-Enter your server's address and your [long-lived access token for Home Assistant](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) as well as your port and wether to use SSL.
+Enter your server's address and your [long-lived access token for Home Assistant](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token) as well as your port and whether to use SSL.
+You need to have `websocket_api` enabled in your Home Assistant configuration!
 On clicking "OK" the connection is established and if successful, new options for buttons appear:
 
 ![HASS options for buttons](art/hass.png)
 
-First you need to select a domain, afterwards you can select an entity and a service for this domain. If your entity has a custom icon it is automatically set as the buttons icon. Streamdeck UI HASS also trys to interpret the entity's state as either "on" or "off". The state "on" gets a yellow icon, "off" is gray. Entities from the domain "media_player" get a special treatment: the icon is also based on the selected service.
+First you need to select a domain, afterwards you can select an entity and a service for this domain. If your entity has a custom icon it is automatically set as the buttons icon. Streamdeck UI HASS also tries to interpret the entity's state as either "on" or "off". The state "on" gets a yellow icon, "off" is gray. Entities from the domain "media_player" get a special treatment: the icon is also based on the selected service.
 
 ## Original Streamdeck UI
 
