@@ -373,11 +373,13 @@ class StreamDeckServer:
         """
 
         deck = self.display_handlers.get(deck_id, None)
-        if deck:
-            qt_image = ImageQt(deck.get_image(page, button))
-            qt_image = qt_image.convertToFormat(QImage.Format.Format_ARGB32)
-            return QPixmap(qt_image)
-        return None
+
+        if not deck:
+            return None
+
+        qt_image = ImageQt(deck.get_image(page, button))
+        qt_image = qt_image.convertToFormat(QImage.Format.Format_ARGB32)
+        return QPixmap(qt_image)
 
     def get_button_icon(self, deck_id: str, page: int, button: int) -> str:
         """Returns the icon path for the specified button"""
@@ -414,6 +416,8 @@ class StreamDeckServer:
         if old != hass_domain:
             self._button_state(deck_id, page, button)["hass_domain"] = hass_domain
             self._save_state()
+            self.update_button_filters(deck_id, page, button)
+            self.synchronize_display_filter(deck_id)
 
     def get_button_hass_domain(self, deck_id: str, page: int, button: int) -> str:
         """Returns the Home Assistant domain set for the specified button"""
@@ -437,11 +441,22 @@ class StreamDeckServer:
             self._save_state()
 
             if hass_entity:
-                self.set_button_icon(deck_id, page, button,
-                                     self.hass.get_icon(hass_entity,
-                                                        self.get_button_hass_service(deck_id, page, button)))
+                state = self.hass.get_state(hass_entity)
+                domain = hass_entity.split(".")[0]
+
+                if self.hass.is_button_icon(state, domain):
+                    self.set_button_icon(deck_id, page, button,
+                                         self.hass.get_icon(hass_entity,
+                                                            self.get_button_hass_service(deck_id, page, button), state))
+                else:
+                    self.set_button_text(deck_id, page, button, state)
             else:
                 self.set_button_icon(deck_id, page, button, "")
+                self.set_button_text(deck_id, page, button, "")
+                self.hass._main_window.ui.hass_service.setCurrentIndex(0)
+
+            self.update_button_filters(deck_id, page, button)
+            self.synchronize_display_filter(deck_id)
 
     def get_button_hass_entity(self, deck_id: str, page: int, button: int) -> str:
         """Returns the Home Assistant entity set for the specified button"""
@@ -459,8 +474,16 @@ class StreamDeckServer:
             self._button_state(deck_id, page, button)["hass_service"] = hass_service
             self._save_state()
 
-            self.set_button_icon(deck_id, page, button,
-                                 self.hass.get_icon(self.get_button_hass_entity(deck_id, page, button), hass_service))
+            hass_entity = self.get_button_hass_entity(deck_id, page, button)
+            state = self.hass.get_state(hass_entity)
+            domain = hass_entity.split(".")[0]
+
+            if self.hass.is_button_icon(state, domain):
+                self.set_button_icon(deck_id, page, button,
+                                     self.hass.get_icon(hass_entity,
+                                                        self.get_button_hass_service(deck_id, page, button), state))
+            else:
+                self.set_button_text(deck_id, page, button, state)
 
     def get_button_hass_service(self, deck_id: str, page: int, button: int) -> str:
         """Returns the Home Assistant service set for the specified button"""
@@ -639,7 +662,10 @@ class StreamDeckServer:
         vertical_align = button_settings.get("text_vertical_align", "")
 
         if text:
-            filters.append(TextFilter(text, font, vertical_align))
+            if icon:
+                filters.append(TextFilter(text, font, vertical_align))
+            else:
+                filters.append(TextFilter(text, font, "middle", 40))
 
         display_handler.replace(page, button, filters)
 
