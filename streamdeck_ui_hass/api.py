@@ -663,9 +663,17 @@ class StreamDeckServer:
 
         if text:
             if icon:
-                filters.append(TextFilter(text, font, vertical_align))
+                font_size = 14
+            elif len(text) < 4:
+                font_size = 40
+            elif len(text) < 5:
+                font_size = 33
+            elif len(text) < 6:
+                font_size = 26
             else:
-                filters.append(TextFilter(text, font, "middle", 40))
+                font_size = 14
+
+            filters.append(TextFilter(text, font, "middle", font_size))
 
         display_handler.replace(page, button, filters)
 
