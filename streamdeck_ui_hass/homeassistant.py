@@ -137,6 +137,10 @@ class HomeAssistant:
 
                             entity_settings = self._entities.get(domain).get(entity_id)
 
+                            if not entity_settings:
+                                # Entität existiert nicht (mehr)
+                                continue
+
                             buttons = entity_settings.get("buttons")
 
                             for button_string in buttons:
@@ -484,6 +488,10 @@ class HomeAssistant:
             await self._load_domains_and_entities()
 
         entity_settings = self._entities.get(domain).get(entity_id)
+
+        if not entity_settings:
+            # Entität existiert nicht (mehr)
+            return
 
         button_string = _encode_deck_id_page_button(deck_id, page, button)
 
