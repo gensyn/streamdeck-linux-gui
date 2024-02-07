@@ -10,7 +10,7 @@ from typing import Dict, Optional
 
 import pkg_resources
 from PySide6 import QtWidgets
-from PySide6.QtCore import QMimeData, QSignalBlocker, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QMimeData, QSignalBlocker, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QDrag, QIcon
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox, QSizePolicy, \
     QSystemTrayIcon
@@ -151,6 +151,7 @@ class MainWindow(QMainWindow):
     """
 
     ui: UiMainWindow
+    hass_connection_changed = Signal(bool)
     "A reference to all the UI objects for the main window"
 
     def __init__(self, api: StreamDeckServer, hass: HomeAssistant):
@@ -158,6 +159,7 @@ class MainWindow(QMainWindow):
         self.api = api
         self.ui = UiMainWindow(self, hass)
         self.window_shown: bool = True
+        self.hass_connection_changed.connect(self.ui.enable_hass_configuration)
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Part of QT signature.
         self.window_shown = False
