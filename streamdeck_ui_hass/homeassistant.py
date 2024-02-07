@@ -88,7 +88,7 @@ class HomeAssistant:
         if not self._url or not self._token or not self._port or not self._ssl:
             return False
 
-        if not self._loop or self._loop.is_closed():
+        if not self._loop or not self._loop.is_running():
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
 
@@ -96,11 +96,11 @@ class HomeAssistant:
             self._event_loop_thread.daemon = True
             self._event_loop_thread.start()
 
-        # without result() connection might not have been established by first call to websocket
-        asyncio.run_coroutine_threadsafe(self._async_connect(), self._loop).result()
+        # without result() connection might not have been established before first call to websocket
+        return asyncio.run_coroutine_threadsafe(self._async_connect(), self._loop).result()
 
     async def _async_connect(self) -> bool:
-        if self.is_connected():
+        if await self._async_is_connected():
             # already connected
             return True
 
@@ -116,13 +116,15 @@ class HomeAssistant:
 
         if not self._websocket:
             if self._main_window:
-                self._main_window.ui.reset_button_configuration()
+                self._main_window.hass_connection_changed.emit(False)
 
             return False
 
         self._entity_change_trigger_websocket = await self._async_auth()
 
-        if self.is_connected():
+        is_connected: bool = await self._async_is_connected()
+
+        if is_connected:
             asyncio.create_task(self._async_run_recv_loop())
 
             # listen for events for entities associated with buttons and update icons
@@ -152,7 +154,7 @@ class HomeAssistant:
 
                                 domain = entity_id.split(".")[0]
 
-                                if self.is_button_icon(state, domain):
+                                if is_button_icon(state, domain):
                                     icon = await self._async_get_icon(entity_id, service, state)
 
                                     self._api.set_button_icon(deck_id, page, button, icon)
@@ -163,15 +165,15 @@ class HomeAssistant:
                 self._main_window.ui.label_statusbar.setText("Connected to Home Assistant")
 
         if self._main_window:
-            self._main_window.ui.reset_button_configuration()
+            self._main_window.hass_connection_changed.emit(is_connected)
 
-        return self.is_connected()
+        return is_connected
 
     def disconnect(self) -> None:
         if self._websocket and not self._websocket.closed:
             asyncio.run_coroutine_threadsafe(self._websocket.close(), self._loop).result()
 
-        #if self._entity_change_trigger_websocket and not self._entity_change_trigger_websocket.closed:
+        # if self._entity_change_trigger_websocket and not self._entity_change_trigger_websocket.closed:
         #    asyncio.run_coroutine_threadsafe(self._entity_change_trigger_websocket.close(), self._loop).result()
 
         if self._loop and not self._loop.is_running():
@@ -247,7 +249,7 @@ class HomeAssistant:
 
                     domain = entity_id.split(".")[0]
 
-                    if self.is_button_icon(state, domain):
+                    if is_button_icon(state, domain):
                         icon = await self._async_get_icon(entity_id, service, new_state.get("state"))
 
                         self._api.set_button_icon(deck_id, page, button, icon)
@@ -257,7 +259,8 @@ class HomeAssistant:
                     if self._main_window and self._api.display_handlers.get(deck_id, False):
                         self._main_window.redraw_buttons()
 
-        self.connect()
+        await self._websocket.close()
+        self._loop.stop()
 
     def get_icon(self, entity_id: str, service: str, state: str = None) -> str:
         if not self.connect():
@@ -561,8 +564,21 @@ class HomeAssistant:
         entity_settings["subscription_id"] = -1
 
     def is_connected(self) -> bool:
-        return bool(self._websocket and not self._websocket.closed \
-                    and self._entity_change_trigger_websocket and not self._entity_change_trigger_websocket.closed)
+        if not self._loop or not self._loop.is_running():
+            return False
+
+        if not self._websocket or self._websocket.closed or not self._entity_change_trigger_websocket or self._entity_change_trigger_websocket.closed:
+            return False
+
+        return asyncio.run_coroutine_threadsafe(self._async_is_connected(), self._loop).result()
+
+    async def _async_is_connected(self) -> bool:
+        if not self._websocket or self._websocket.closed or not self._entity_change_trigger_websocket or self._entity_change_trigger_websocket.closed:
+            return False
+
+        a = await is_websocket_alive(self._websocket)
+        b = await is_websocket_alive(self._entity_change_trigger_websocket)
+        return a and b
 
     def _get_icon_svg(self, entity_id: str, name: str) -> str:
         if "mdi:" in name:
@@ -587,8 +603,9 @@ class HomeAssistant:
 
         return response
 
-    def is_button_icon(self, state: str, domain: str) -> bool:
-        return state in ["on", "off"] or domain in ["media_player"]
+
+def is_button_icon(state: str, domain: str) -> bool:
+    return state in ["on", "off"] or domain in ["media_player"]
 
 
 def _encode_deck_id_page_button(deck_id: str, page: int, button: int) -> str:
@@ -608,6 +625,16 @@ def _get_field_from_message(message: str, field: str):
     except json.JSONDecodeError:
         _LOGGER.error(f"Could not parse {message}")
         return ""
+
+
+async def is_websocket_alive(websocket):
+    try:
+        pong_waiter = websocket.ping()
+        await asyncio.wait_for(pong_waiter, timeout=1)
+        return True
+    except TimeoutError:
+        # The connection is closed or the ping wasn't answered in time
+        return False
 
 # ha = HomeAssistant()
 # ha.set_main_window(MagicMock())

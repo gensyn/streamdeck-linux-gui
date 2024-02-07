@@ -1,11 +1,11 @@
 import os
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Signal, Slot
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QPushButton, QProgressBar, QTabWidget, \
     QGroupBox, QFormLayout, QLabel, QLineEdit, QSpinBox, QPlainTextEdit, \
     QMenuBar, QMenu, QStatusBar, QGridLayout
-from homeassistant import HomeAssistant
+from streamdeck_ui_hass.homeassistant import HomeAssistant
 
 from streamdeck_ui_hass.config import PROJECT_PATH
 
@@ -281,7 +281,7 @@ class UiMainWindow(object):
         for service in services:
             self.hass_service.addItem(service)
 
-    def reset_button_configuration(self):
+    def reset_button_configuration(self, hass_connected: bool = False):
         """Clears the configuration for a button and disables editing of them. This is done when
         there is no key selected or if there are no devices connected.
         """
@@ -298,14 +298,8 @@ class UiMainWindow(object):
     def enable_button_configuration(self, enabled: bool):
         self.label.setEnabled(enabled)
         self.command.setEnabled(enabled)
-        self.label_hass_domain.setVisible(self._hass.is_connected())
-        self.hass_domain.setVisible(self._hass.is_connected())
         self.hass_domain.setEnabled(enabled)
-        self.label_hass_entity.setVisible(self._hass.is_connected())
-        self.hass_entity.setVisible(self._hass.is_connected())
         self.hass_entity.setEnabled(enabled and bool(self.hass_domain.currentText()))
-        self.label_hass_service.setVisible(self._hass.is_connected())
-        self.hass_service.setVisible(self._hass.is_connected())
         self.hass_service.setEnabled(enabled and bool(self.hass_domain.currentText()))
         self.keys.setEnabled(enabled)
         self.write.setEnabled(enabled)
@@ -321,6 +315,17 @@ class UiMainWindow(object):
         self.keys.setVisible(pynput_supported)
         self.label_write_text.setVisible(pynput_supported)
         self.write.setVisible(pynput_supported)
+
+        self.enable_hass_configuration()
+
+    @Slot(bool)
+    def enable_hass_configuration(self, hass_connected: bool = False):
+        self.label_hass_domain.setVisible(hass_connected)
+        self.hass_domain.setVisible(hass_connected)
+        self.label_hass_entity.setVisible(hass_connected)
+        self.hass_entity.setVisible(hass_connected)
+        self.label_hass_service.setVisible(hass_connected)
+        self.hass_service.setVisible(hass_connected)
 
     def create_action(self, text: str):
         action = QAction(self.main_window)
