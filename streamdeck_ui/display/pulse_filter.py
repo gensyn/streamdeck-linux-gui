@@ -3,7 +3,7 @@ from typing import Callable, Tuple
 
 from PIL import Image, ImageEnhance
 
-from streamdeck_ui.display.filter import Filter
+from .filter import Filter
 
 
 class PulseFilter(Filter):

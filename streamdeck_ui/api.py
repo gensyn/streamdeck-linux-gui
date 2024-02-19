@@ -95,6 +95,13 @@ class StreamDeckServer:
         self.streamdeck_keys = KeySignalEmitter()
         self.plugevents = StreamDeckSignalEmitter()
 
+        self.hass = None
+
+        self.button_clicked = False
+
+    def set_hass(self, hass):
+        self.hass = hass
+
     def stop_dimmer(self, serial_number: str) -> None:
         """Stops the dimmer for the given Stream Deck
 
@@ -318,6 +325,7 @@ class StreamDeckServer:
 
     def stop(self):
         self.monitor.stop()
+        self.hass.disconnect()
 
     def get_deck_layout(self, serial_number: str) -> Tuple[int, int]:
         """Returns a tuple containing the number of rows and columns for the specified Stream Deck"""
@@ -524,6 +532,90 @@ class StreamDeckServer:
         """Returns the command set for the specified button"""
         return self._button_state(serial_number, page, button).command
 
+    def set_button_hass_domain(self, deck_id: str, page: int, button: int, hass_domain: str) -> None:
+        if self.button_clicked:
+            # Don't save change when a button was clicked
+            return
+
+        """Sets the Home Assistant domain associated with the button"""
+        old = self.get_button_hass_domain(deck_id, page, button)
+
+        if old != hass_domain:
+            self._button_state(deck_id, page, button)["hass_domain"] = hass_domain
+            self._save_state()
+            self.update_button_filters(deck_id, page, button)
+            self.synchronize_display_filter(deck_id)
+
+    def get_button_hass_domain(self, deck_id: str, page: int, button: int) -> str:
+        """Returns the Home Assistant domain set for the specified button"""
+        return self._button_state(deck_id, page, button).get("hass_domain", "")
+
+    def set_button_hass_entity(self, deck_id: str, page: int, button: int, hass_entity: str) -> None:
+        if self.button_clicked:
+            # Don't save change when a button was clicked
+            return
+
+        """Sets the Home Assistant entity associated with the button"""
+        old = self.get_button_hass_entity(deck_id, page, button)
+
+        if old != hass_entity:
+            self._button_state(deck_id, page, button)["hass_entity"] = hass_entity
+
+            if old:
+                self.hass.remove_tracked_entity(old, deck_id, page, button)
+
+            self.hass.add_tracked_entity(hass_entity, deck_id, page, button)
+            self._save_state()
+
+            if hass_entity:
+                state = self.hass.get_state(hass_entity)
+                domain = hass_entity.split(".")[0]
+
+                if self.hass.is_button_icon(state, domain):
+                    self.set_button_icon(deck_id, page, button,
+                                         self.hass.get_icon(hass_entity,
+                                                            self.get_button_hass_service(deck_id, page, button), state))
+                else:
+                    self.set_button_text(deck_id, page, button, state)
+            else:
+                self.set_button_icon(deck_id, page, button, "")
+                self.set_button_text(deck_id, page, button, "")
+                self.hass._main_window.ui.hass_service.setCurrentIndex(0)
+
+            self.update_button_filters(deck_id, page, button)
+            self.synchronize_display_filter(deck_id)
+
+    def get_button_hass_entity(self, deck_id: str, page: int, button: int) -> str:
+        """Returns the Home Assistant entity set for the specified button"""
+        return self._button_state(deck_id, page, button).get("hass_entity", "")
+
+    def set_button_hass_service(self, deck_id: str, page: int, button: int, hass_service: str) -> None:
+        if self.button_clicked:
+            # Don't save change when a button was clicked
+            return
+
+        """Sets the Home Assistant service associated with the button"""
+        old = self.get_button_hass_service(deck_id, page, button)
+
+        if old != hass_service:
+            self._button_state(deck_id, page, button)["hass_service"] = hass_service
+            self._save_state()
+
+            hass_entity = self.get_button_hass_entity(deck_id, page, button)
+            state = self.hass.get_state(hass_entity)
+            domain = hass_entity.split(".")[0]
+
+            if self.hass.is_button_icon(state, domain):
+                self.set_button_icon(deck_id, page, button,
+                                     self.hass.get_icon(hass_entity,
+                                                        self.get_button_hass_service(deck_id, page, button), state))
+            else:
+                self.set_button_text(deck_id, page, button, state)
+
+    def get_button_hass_service(self, deck_id: str, page: int, button: int) -> str:
+        """Returns the Home Assistant service set for the specified button"""
+        return self._button_state(deck_id, page, button).get("hass_service", "")
+
     def set_button_switch_page(self, serial_number: str, page: int, button: int, switch_page: int) -> None:
         """Sets the page switch associated with the button"""
         if self.get_button_switch_page(serial_number, page, button) != switch_page:
@@ -605,6 +697,38 @@ class StreamDeckServer:
         self.state[serial_number].brightness_dimmed = brightness_dimmed
         self._save_state()
 
+    def get_hass_url(self) -> str:
+        return self.state.get("hass_url", "")  # type: ignore
+
+    def set_hass_url(self, hass_url: str) -> None:
+        self.state["hass_url"] = hass_url
+        self._save_state()
+        self.hass.set_url(hass_url)
+
+    def get_hass_token(self) -> str:
+        return self.state.get("hass_token", "")  # type: ignore
+
+    def set_hass_token(self, hass_token: str) -> None:
+        self.state["hass_token"] = hass_token
+        self._save_state()
+        self.hass.set_token(hass_token)
+
+    def get_hass_port(self) -> str:
+        return self.state.get("hass_port", "")  # type: ignore
+
+    def set_hass_port(self, hass_port: str) -> None:
+        self.state["hass_port"] = hass_port
+        self._save_state()
+        self.hass.set_port(hass_port)
+
+    def get_hass_ssl(self) -> bool:
+        return self.state.get("hass_ssl", True)  # type: ignore
+
+    def set_hass_ssl(self, hass_ssl: bool) -> None:
+        self.state["hass_ssl"] = hass_ssl
+        self._save_state()
+        self.hass.set_ssl(hass_ssl)
+
     def change_brightness(self, deck_id: str, amount: int = 1) -> None:
         """Change the brightness of the deck by the specified amount"""
         brightness = max(min(self.get_brightness(deck_id) + amount, 100), 0)
@@ -633,7 +757,7 @@ class StreamDeckServer:
         # Let the display know to process new set of pipelines
         display_handler.set_page(page)
         # Wait for at least one cycle
-        display_handler.synchronize()
+        self.synchronize_display_filter(deck_id)
 
     def _update_streamdeck_filters(self, serial_number: str):
         """Updates the filters for all the StreamDeck buttons.
@@ -669,7 +793,11 @@ class StreamDeckServer:
         :param button: The button to update
         :type button: int
         """
-        display_handler = self.display_handlers[serial_number]
+        display_handler = self.display_handlers.get(serial_number, None)
+
+        if not display_handler:
+            return
+
         button_settings = self._button_state(serial_number, page, button)
         filters: List[Filter] = []
 
@@ -699,3 +827,9 @@ class StreamDeckServer:
             )
 
         display_handler.replace(page, button, filters)
+
+    def synchronize_display_filter(self, deck_id: str) -> None:
+        handler = self.display_handlers.get(deck_id, None)
+
+        if handler:
+            handler.synchronize()

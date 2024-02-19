@@ -8,10 +8,10 @@ from StreamDeck.Devices.StreamDeckOriginal import StreamDeckOriginal
 from StreamDeck.ImageHelpers import PILHelper
 from StreamDeck.Transport.Transport import TransportError
 
-from streamdeck_ui.display.empty_filter import EmptyFilter
-from streamdeck_ui.display.filter import Filter
-from streamdeck_ui.display.keypress_filter import KeypressFilter
-from streamdeck_ui.display.pipeline import Pipeline
+from .empty_filter import EmptyFilter
+from .filter import Filter
+from .keypress_filter import KeypressFilter
+from .pipeline import Pipeline
 
 
 class DisplayGrid:
