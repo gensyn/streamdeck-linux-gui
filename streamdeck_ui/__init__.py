@@ -1,5 +1,5 @@
-"""**streamdeck_ui**
+"""**streamdeck-ui-hass**
 
-A Linux compatible UI for the Elgato Stream Deck.
+A Linux compatible UI with Home Assistant support for the Elgato Stream Deck.
 """
-__version__ = "1.0.2"
+__version__ = "0.0.1"
