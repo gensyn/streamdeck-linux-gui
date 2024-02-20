@@ -8,24 +8,23 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPlainTextEdit, QPushButton,
-    QSizePolicy, QSpinBox, QTextEdit, QVBoxLayout,
-    QWidget)
-from . import resources_rc
+from PySide6.QtCore import (QCoreApplication,
+                            QMetaObject,
+                            QSize, Qt)
+from PySide6.QtGui import (QBrush, QColor, QIcon, QPalette)
+from PySide6.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout,
+                               QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+                               QSizePolicy, QSpinBox, QTextEdit, QVBoxLayout)
+
+from .homeassistant import HomeAssistant
+
 
 class Ui_ButtonForm(object):
-    def setupUi(self, ButtonForm):
+    def setupUi(self, ButtonForm, hass: HomeAssistant):
         if not ButtonForm.objectName():
             ButtonForm.setObjectName(u"ButtonForm")
         ButtonForm.resize(568, 778)
+        self._hass: HomeAssistant = hass
         self.formLayout = QFormLayout(ButtonForm)
         self.formLayout.setObjectName(u"formLayout")
         self.label = QLabel(ButtonForm)
@@ -54,7 +53,6 @@ class Ui_ButtonForm(object):
         self.remove_image.setIcon(icon)
 
         self.horizontalLayout_2.addWidget(self.remove_image)
-
 
         self.formLayout.setLayout(0, QFormLayout.FieldRole, self.horizontalLayout_2)
 
@@ -99,9 +97,9 @@ class Ui_ButtonForm(object):
         palette.setBrush(QPalette.Active, QPalette.ToolTipText, brush)
         brush5 = QBrush(QColor(0, 0, 0, 128))
         brush5.setStyle(Qt.SolidPattern)
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        # if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
         palette.setBrush(QPalette.Active, QPalette.PlaceholderText, brush5)
-#endif
+        # endif
         palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
         palette.setBrush(QPalette.Inactive, QPalette.Button, brush1)
         palette.setBrush(QPalette.Inactive, QPalette.Light, brush1)
@@ -117,9 +115,9 @@ class Ui_ButtonForm(object):
         palette.setBrush(QPalette.Inactive, QPalette.AlternateBase, brush1)
         palette.setBrush(QPalette.Inactive, QPalette.ToolTipBase, brush4)
         palette.setBrush(QPalette.Inactive, QPalette.ToolTipText, brush)
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        # if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
         palette.setBrush(QPalette.Inactive, QPalette.PlaceholderText, brush5)
-#endif
+        # endif
         palette.setBrush(QPalette.Disabled, QPalette.WindowText, brush2)
         palette.setBrush(QPalette.Disabled, QPalette.Button, brush1)
         palette.setBrush(QPalette.Disabled, QPalette.Light, brush1)
@@ -135,9 +133,9 @@ class Ui_ButtonForm(object):
         palette.setBrush(QPalette.Disabled, QPalette.AlternateBase, brush1)
         palette.setBrush(QPalette.Disabled, QPalette.ToolTipBase, brush4)
         palette.setBrush(QPalette.Disabled, QPalette.ToolTipText, brush)
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        # if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
         palette.setBrush(QPalette.Disabled, QPalette.PlaceholderText, brush5)
-#endif
+        # endif
         self.background_color.setPalette(palette)
 
         self.formLayout.setWidget(1, QFormLayout.FieldRole, self.background_color)
@@ -175,9 +173,7 @@ class Ui_ButtonForm(object):
 
         self.verticalLayout_4.addWidget(self.text_h_align)
 
-
         self.horizontalLayout_3.addLayout(self.verticalLayout_4)
-
 
         self.formLayout.setLayout(2, QFormLayout.FieldRole, self.horizontalLayout_3)
 
@@ -239,9 +235,9 @@ class Ui_ButtonForm(object):
         palette1.setBrush(QPalette.Active, QPalette.AlternateBase, brush1)
         palette1.setBrush(QPalette.Active, QPalette.ToolTipBase, brush4)
         palette1.setBrush(QPalette.Active, QPalette.ToolTipText, brush)
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        # if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
         palette1.setBrush(QPalette.Active, QPalette.PlaceholderText, brush5)
-#endif
+        # endif
         palette1.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
         palette1.setBrush(QPalette.Inactive, QPalette.Button, brush1)
         palette1.setBrush(QPalette.Inactive, QPalette.Light, brush1)
@@ -257,9 +253,9 @@ class Ui_ButtonForm(object):
         palette1.setBrush(QPalette.Inactive, QPalette.AlternateBase, brush1)
         palette1.setBrush(QPalette.Inactive, QPalette.ToolTipBase, brush4)
         palette1.setBrush(QPalette.Inactive, QPalette.ToolTipText, brush)
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        # if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
         palette1.setBrush(QPalette.Inactive, QPalette.PlaceholderText, brush5)
-#endif
+        # endif
         palette1.setBrush(QPalette.Disabled, QPalette.WindowText, brush2)
         palette1.setBrush(QPalette.Disabled, QPalette.Button, brush1)
         palette1.setBrush(QPalette.Disabled, QPalette.Light, brush1)
@@ -275,9 +271,9 @@ class Ui_ButtonForm(object):
         palette1.setBrush(QPalette.Disabled, QPalette.AlternateBase, brush1)
         palette1.setBrush(QPalette.Disabled, QPalette.ToolTipBase, brush4)
         palette1.setBrush(QPalette.Disabled, QPalette.ToolTipText, brush)
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        # if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
         palette1.setBrush(QPalette.Disabled, QPalette.PlaceholderText, brush5)
-#endif
+        # endif
         self.text_color.setPalette(palette1)
 
         self.horizontalLayout.addWidget(self.text_color)
@@ -354,47 +350,120 @@ class Ui_ButtonForm(object):
 
         self.formLayout.setWidget(11, QFormLayout.FieldRole, self.write)
 
+        self.label_hass_domain: QLabel = QLabel(ButtonForm)
+        self.label_hass_domain.setObjectName(u"label_hass_domain")
+
+        self.formLayout.setWidget(12, QFormLayout.LabelRole, self.label_hass_domain)
+
+        self.hass_domain: QComboBox = QComboBox(ButtonForm)
+        self.hass_domain.setObjectName(u"hass_domain")
+        self.hass_domain.setEditable(False)
+
+        self.formLayout.setWidget(12, QFormLayout.FieldRole, self.hass_domain)
+
+        self.label_hass_entity: QLabel = QLabel(ButtonForm)
+        self.label_hass_entity.setObjectName(u"label_hass_entity")
+
+        self.formLayout.setWidget(13, QFormLayout.LabelRole, self.label_hass_entity)
+
+        self.hass_entity: QComboBox = QComboBox(ButtonForm)
+        self.hass_entity.setObjectName(u"hass_entity")
+        self.hass_entity.setEditable(False)
+
+        self.formLayout.setWidget(13, QFormLayout.FieldRole, self.hass_entity)
+
+        self.label_hass_service: QLabel = QLabel(ButtonForm)
+        self.label_hass_service.setObjectName(u"label_hass_service")
+
+        self.formLayout.setWidget(14, QFormLayout.LabelRole, self.label_hass_service)
+
+        self.hass_service: QComboBox = QComboBox(ButtonForm)
+        self.hass_service.setObjectName(u"hass_service")
+        self.hass_service.setEditable(False)
+
+        self.formLayout.setWidget(14, QFormLayout.FieldRole, self.hass_service)
+
+        self.load_hass_domains()
+        self.load_hass_entities()
+        self.load_hass_services()
 
         self.retranslateUi(ButtonForm)
 
         QMetaObject.connectSlotsByName(ButtonForm)
+
     # setupUi
+
+    def load_hass_domains(self):
+        self.hass_domain.clear()
+        self.hass_domain.addItem("")
+
+        domains = sorted(self._hass.get_domains())
+
+        for domain in domains:
+            self.hass_domain.addItem(domain)
+
+        self.hass_entity.clear()
+        self.hass_entity.setEnabled(False)
+
+        self.hass_service.clear()
+        self.hass_service.setEnabled(False)
+
+    def load_hass_entities(self):
+        self.hass_entity.setEnabled(True)
+        self.hass_entity.clear()
+        self.hass_entity.addItem("")
+
+        entities = sorted(self._hass.get_entities(self.hass_domain.currentText()))
+
+        for entity in entities:
+            self.hass_entity.addItem(entity)
+
+    def load_hass_services(self):
+        self.hass_service.setEnabled(True)
+        self.hass_service.clear()
+        self.hass_service.addItem("")
+
+        services = self._hass.get_services(self.hass_domain.currentText())
+
+        for service in services:
+            self.hass_service.addItem(service)
 
     def retranslateUi(self, ButtonForm):
         ButtonForm.setWindowTitle(QCoreApplication.translate("ButtonForm", u"Form", None))
         self.label.setText(QCoreApplication.translate("ButtonForm", u"Image:", None))
         self.add_image.setText(QCoreApplication.translate("ButtonForm", u"Image...", None))
-#if QT_CONFIG(tooltip)
-        self.remove_image.setToolTip(QCoreApplication.translate("ButtonForm", u"Remove the image from the button", None))
-#endif // QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
+        self.remove_image.setToolTip(
+            QCoreApplication.translate("ButtonForm", u"Remove the image from the button", None))
+        # endif // QT_CONFIG(tooltip)
         self.remove_image.setText("")
         self.label_9.setText(QCoreApplication.translate("ButtonForm", u"Background", None))
-#if QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.background_color.setToolTip(QCoreApplication.translate("ButtonForm", u"Text Color", None))
-#endif // QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
         self.background_color.setText("")
         self.label_2.setText(QCoreApplication.translate("ButtonForm", u"Label:", None))
-#if QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.text_v_align.setToolTip(QCoreApplication.translate("ButtonForm", u"Text vertical alignment", None))
-#endif // QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
         self.text_v_align.setText("")
-#if QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.text_h_align.setToolTip(QCoreApplication.translate("ButtonForm", u"Text horizontal alignment", None))
-#endif // QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
         self.text_h_align.setText("")
         self.label_4.setText(QCoreApplication.translate("ButtonForm", u"Label Font:", None))
-#if QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.text_font.setToolTip(QCoreApplication.translate("ButtonForm", u"Text Font style", None))
-#endif // QT_CONFIG(tooltip)
-#if QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.text_font_style.setToolTip(QCoreApplication.translate("ButtonForm", u"Text Font", None))
-#endif // QT_CONFIG(tooltip)
-#if QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.text_font_size.setToolTip(QCoreApplication.translate("ButtonForm", u"Text Font size", None))
-#endif // QT_CONFIG(tooltip)
-#if QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.text_color.setToolTip(QCoreApplication.translate("ButtonForm", u"Text Color", None))
-#endif // QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
         self.text_color.setText("")
         self.label_3.setText(QCoreApplication.translate("ButtonForm", u"Command:", None))
         self.label_5.setText(QCoreApplication.translate("ButtonForm", u"Press Keys:", None))
@@ -402,5 +471,7 @@ class Ui_ButtonForm(object):
         self.label_10.setText(QCoreApplication.translate("ButtonForm", u"Switch state", None))
         self.label_7.setText(QCoreApplication.translate("ButtonForm", u"Brightness +/-:", None))
         self.label_6.setText(QCoreApplication.translate("ButtonForm", u"Write Text:", None))
+        self.label_hass_domain.setText(QCoreApplication.translate("ButtonForm", u"HASS Domain:", None))
+        self.label_hass_entity.setText(QCoreApplication.translate("ButtonForm", u"HASS Entity:", None))
+        self.label_hass_service.setText(QCoreApplication.translate("ButtonForm", u"HASS Service:", None))
     # retranslateUi
-

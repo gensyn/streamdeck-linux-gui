@@ -8,7 +8,7 @@ from subprocess import Popen  # nosec - Need to allow users to specify arbitrary
 from typing import Dict, List, Optional, Union
 
 from importlib_metadata import PackageNotFoundError, version
-from PySide6.QtCore import QMimeData, QSettings, QSignalBlocker, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QMimeData, QSettings, QSignalBlocker, QSize, Qt, QTimer, QUrl, Slot, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QDrag, QFont, QIcon, QPalette
 from PySide6.QtWidgets import (
     QApplication,
@@ -42,6 +42,7 @@ from streamdeck_ui.config import (
     do_config_file_migration,
 )
 from streamdeck_ui.display.text_filter import is_a_valid_text_filter_font
+from streamdeck_ui.homeassistant import HomeAssistant
 from streamdeck_ui.modules.fonts import DEFAULT_FONT_FAMILY, FONTS_DICT, find_font_info
 from streamdeck_ui.modules.keyboard import KeyPressAutoComplete, keyboard_press_keys, keyboard_write
 from streamdeck_ui.modules.utils.timers import debounce
@@ -249,6 +250,11 @@ def handle_keypress(ui, deck_id: str, key: int, state: bool) -> None:
                     f"Unable to perform switch button state, the button state {switch_state} does not exist in your current settings"  # noqa: E713
                 )
 
+        hass_entity = api.get_button_hass_entity(deck_id, page, key)
+        hass_service = api.get_button_hass_service(deck_id, page, key)
+        if hass_entity and hass_service:
+            api.hass.call_service(hass_entity, hass_service)
+
 
 def _deck() -> Optional[str]:
     """Returns the currently selected Stream Deck serial number"""
@@ -302,6 +308,11 @@ def handle_change_page() -> None:
         redraw_buttons()
         api.reset_dimmer(deck_id)
     build_button_state_pages()
+
+
+def handle_change_hass_domain(tab_ui, domain_index=None):
+    tab_ui.load_hass_entities()
+    tab_ui.load_hass_services()
 
 
 def handle_change_button_state() -> None:
@@ -481,6 +492,34 @@ def set_brightness_dimmed(value: int) -> None:
     api.reset_dimmer(deck_id)
 
 
+def set_hass_url(value: str) -> None:
+    deck_id = _deck()
+    if deck_id is None:
+        return
+    api.set_hass_url(deck_id, value)
+
+
+def set_hass_token(value: str) -> None:
+    deck_id = _deck()
+    if deck_id is None:
+        return
+    api.set_hass_token(deck_id, value)
+
+
+def set_hass_port(value: str) -> None:
+    deck_id = _deck()
+    if deck_id is None:
+        return
+    api.set_hass_port(deck_id, value)
+
+
+def set_hass_ssl(value: bool) -> None:
+    deck_id = _deck()
+    if deck_id is None:
+        return
+    api.set_hass_ssl(deck_id, value)
+
+
 def button_clicked(clicked_button, buttons) -> None:
     """This method build the button states tabs user interface.
     It is called when a button is clicked on the main page."""
@@ -581,7 +620,7 @@ def build_button_state_form(tab) -> None:
     tab.button_form = base_widget
 
     tab_ui = Ui_ButtonForm()
-    tab_ui.setupUi(base_widget)
+    tab_ui.setupUi(base_widget, api.hass)
 
     deck_id = _deck()
     page_id = _page()
@@ -611,6 +650,27 @@ def build_button_state_form(tab) -> None:
     tab_ui.switch_page.setValue(button_state.switch_page)
     tab_ui.switch_state.setValue(button_state.switch_state)
 
+    hass_domain_text = button_state.hass_domain
+    for i in range(tab_ui.hass_domain.count()):
+        if hass_domain_text == tab_ui.hass_domain.itemText(i):
+            tab_ui.hass_domain.setCurrentIndex(i)
+            break
+
+    tab_ui.load_hass_entities()
+    tab_ui.load_hass_services()
+
+    hass_entity_text = button_state.hass_entity
+    for i in range(tab_ui.hass_entity.count()):
+        if hass_entity_text == tab_ui.hass_entity.itemText(i):
+            tab_ui.hass_entity.setCurrentIndex(i)
+            break
+
+    hass_service_text = button_state.hass_service
+    for i in range(tab_ui.hass_service.count()):
+        if hass_service_text == tab_ui.hass_service.itemText(i):
+            tab_ui.hass_service.setCurrentIndex(i)
+            break
+
     font_family, font_style = find_font_info(button_state.font or DEFAULT_FONT_FALLBACK_PATH)
     prepare_button_state_form_text_font_list(tab_ui, font_family)
     prepare_button_state_form_text_font_style_list(tab_ui, font_family, font_style)
@@ -633,10 +693,14 @@ def build_button_state_form(tab) -> None:
     tab_ui.background_color.clicked.connect(partial(show_button_state_background_color_dialog, tab_ui))
     tab_ui.switch_page.valueChanged.connect(partial(update_button_attribute, "switch_page"))
     tab_ui.switch_state.valueChanged.connect(partial(update_button_attribute, "switch_state"))
+    tab_ui.hass_domain.currentTextChanged.connect(partial(update_button_attribute, "hass_domain"))
+    tab_ui.hass_entity.currentTextChanged.connect(partial(update_button_attribute, "hass_entity"))
+    tab_ui.hass_service.currentTextChanged.connect(partial(update_button_attribute, "hass_service"))
     tab_ui.add_image.clicked.connect(partial(show_button_state_image_dialog))
     tab_ui.remove_image.clicked.connect(show_button_state_remove_image_dialog)
     tab_ui.text_h_align.clicked.connect(partial(update_align_text_horizontal))
     tab_ui.text_v_align.clicked.connect(partial(update_align_text_vertical))
+    tab_ui.hass_domain.currentIndexChanged.connect(partial(handle_change_hass_domain, tab_ui))
 
 
 def enable_button_configuration(ui: Ui_ButtonForm, enabled: bool):
@@ -662,6 +726,16 @@ def enable_button_configuration(ui: Ui_ButtonForm, enabled: bool):
         ui.background_color.setPalette(QPalette(DEFAULT_BACKGROUND_COLOR))
     else:
         ui.background_color.setPalette(QPalette(DEFAULT_FONT_COLOR))
+
+
+@Slot(bool)
+def enable_hass_configuration(ui: Ui_ButtonForm, hass_connected: bool = False):
+    ui.label_hass_domain.setVisible(hass_connected)
+    ui.hass_domain.setVisible(hass_connected)
+    ui.label_hass_entity.setVisible(hass_connected)
+    ui.hass_entity.setVisible(hass_connected)
+    ui.label_hass_service.setVisible(hass_connected)
+    ui.hass_service.setVisible(hass_connected)
 
 
 def prepare_button_state_form_text_font_list(ui: Ui_ButtonForm, current_font_family: str) -> None:
@@ -1041,6 +1115,8 @@ class MainWindow(QMainWindow):
     window_shown: bool
     settings: QSettings
 
+    hass_connection_changed = Signal(bool)
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
@@ -1048,6 +1124,7 @@ class MainWindow(QMainWindow):
         self.window_shown = True
         self.settings = QSettings("streamdeck-ui", "streamdeck-ui")
         self.restoreGeometry(self.settings.value("geometry", self.saveGeometry()))
+        #self.hass_connection_changed.connect(partial(enable_hass_configuration, self.ui))
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Part of QT signature.
         self.settings.setValue("geometry", self.saveGeometry())
@@ -1085,6 +1162,9 @@ class MainWindow(QMainWindow):
                 pass
         QMessageBox.about(self, title, "\n".join(body))
 
+    def redraw_buttons(self):
+        redraw_buttons()
+
 
 def update_displayed_button_attribute(attribute: str, value: Union[str, int]) -> None:
     """Updates the given attribute for the currently selected button.
@@ -1120,6 +1200,8 @@ def update_button_attribute(attribute: str, value: Union[str, int]) -> bool:
 
     update_function = getattr(api, f"set_button_{attribute}")
     update_function(deck_id, page_id, button_id, value)
+
+    redraw_buttons()
 
     return True
 
@@ -1171,11 +1253,34 @@ def show_settings(window: MainWindow) -> None:
     settings.ui.brightness.setValue(api.get_brightness(deck_id))
     settings.ui.brightness.valueChanged.connect(partial(change_brightness, deck_id))
     settings.ui.dim.currentIndexChanged.connect(partial(disable_dim_settings, settings))
+
+    old_url = api.get_hass_url(deck_id)
+    settings.ui.url.setText(old_url)
+    old_token = api.get_hass_token(deck_id)
+    settings.ui.token.setText(old_token)
+    old_port = api.get_hass_port(deck_id)
+    settings.ui.port.setText(old_port)
+    old_ssl = api.get_hass_ssl(deck_id)
+    settings.ui.ssl.setChecked(old_ssl)
+
     if settings.exec():
         if existing_index != settings.ui.dim.currentIndex():
             api.set_display_timeout(deck_id, settings.ui.dim.currentData())
         set_brightness(settings.ui.brightness.value())
         set_brightness_dimmed(settings.ui.brightness_dimmed.value())
+
+        url = settings.ui.url.text()
+        set_hass_url(url)
+        token = settings.ui.token.text()
+        set_hass_token(token)
+        port = settings.ui.port.text()
+        set_hass_port(port)
+        ssl = settings.ui.ssl.isChecked()
+        set_hass_ssl(ssl)
+
+        if old_url != url or old_token != token or old_port != port or old_ssl != ssl:
+            api.hass.disconnect()
+            api.hass.connect()
     else:
         # User cancelled, reset to original brightness
         change_brightness(deck_id, api.get_brightness(deck_id))
@@ -1370,6 +1475,11 @@ def start(_exit: bool = False) -> None:
         with Semaphore("/tmp/streamdeck_ui.lock"):  # nosec - this file is only observed with advisory lock
             # The semaphore was created, so this is the first instance
 
+            # set up hass
+            hass = HomeAssistant()
+            api.set_hass(hass)
+            hass.set_api(api)
+
             # The QApplication object holds the Qt event loop, and you need one of these
             # for your application
             app = QApplication(sys.argv)
@@ -1379,6 +1489,8 @@ def start(_exit: bool = False) -> None:
             app.setWindowIcon(logo)
             main_window = create_main_window(api, app)
             create_tray(logo, app)
+
+            hass.set_main_window(main_window)
 
             # check if we want to continue with the configuration migrate
             show_migration_config_warning_and_check(app)
