@@ -2,7 +2,7 @@ from time import sleep
 
 import pytest
 
-from dimmer import Dimmer
+from streamdeck_ui.dimmer import Dimmer
 
 
 @pytest.mark.parametrize("brightness, dim_percent, dimmed", [(100, 0, 0), (100, 50, 50), (100, 100, 100), (50, 50, 25)])

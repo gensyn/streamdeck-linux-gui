@@ -1,7 +1,6 @@
 import datetime
 import itertools
 import os
-import time
 from fractions import Fraction
 from io import BytesIO
 from typing import Callable, Tuple

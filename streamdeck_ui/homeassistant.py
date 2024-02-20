@@ -627,17 +627,3 @@ async def is_websocket_alive(websocket):
     except TimeoutError:
         # The connection is closed or the ping wasn't answered in time
         return False
-
-# ha = HomeAssistant()
-# ha.set_main_window(MagicMock())
-# ha.set_url("homeassistant.gensyn.de")
-# ha.set_token(
-#     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhODFjMjFhNDk5OGM0NzFhYjI5ZGE5ZmYzMTczNmI4ZSIsImlhdCI6MTY3ODk5NjQ1NCwiZXhwIjoxOTk0MzU2NDU0fQ.VH4bwZh3Xcdfe9pLZnENz9_tHow0s7O5xmsUr3t7CW4")
-# ha.set_port("443")
-# ha.set_ssl(True)
-# test = ha.get_domains()
-# test2 = ha.get_entities("light")
-# test3 = ha.get_services("automation")
-# test = ha.get_icon("media_player.test", "media_previous_track", "paused")
-# pass
-# ha.disconnect()

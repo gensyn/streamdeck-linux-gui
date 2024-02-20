@@ -3,10 +3,10 @@ from typing import Callable, Tuple
 
 from PIL import Image
 
-from .filter import Filter
+from streamdeck_ui.display import filter
 
 
-class EmptyFilter(Filter):
+class EmptyFilter(filter.Filter):
     """
     This is the empty (base) filter where all pipelines start from.
 

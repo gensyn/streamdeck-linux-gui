@@ -3,7 +3,7 @@ from fractions import Fraction
 
 import pytest
 
-from display import empty_filter, image_filter, pipeline
+from streamdeck_ui.display import empty_filter, image_filter, pipeline
 
 
 def get_asset(file_name):
