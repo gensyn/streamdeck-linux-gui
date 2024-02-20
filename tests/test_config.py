@@ -33,6 +33,9 @@ TEST_CONFIG_STATE = {
                             "font_color": "",
                             "font_size": 0,
                             "background_color": "",
+                            "hass_domain": "",
+                            "hass_entity": "",
+                            "hass_service": "",
                         }
                     },
                 }
@@ -43,6 +46,10 @@ TEST_CONFIG_STATE = {
         "brightness_dimmed": 0,
         "rotation": 0,
         "page": 0,
+        "hass_url": "",
+        "hass_token": "",
+        "hass_port": "",
+        "hass_ssl": False,
     }
 }
 TEST_CONFIG_STATE_V1 = {
@@ -71,6 +78,10 @@ TEST_CONFIG_STATE_V1 = {
         "brightness_dimmed": 0,
         "rotation": 0,
         "page": 0,
+        "hass_url": "",
+        "hass_token": "",
+        "hass_port": "",
+        "hass_ssl": False,
     }
 }
 
