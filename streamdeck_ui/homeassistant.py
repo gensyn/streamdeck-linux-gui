@@ -130,7 +130,7 @@ class HomeAssistant:
             for deck_id, deck in self._api.state.items():
                 for page_id, page in deck.buttons.items():
                     for multi_button_id, multi_button in page.items():
-                        for button_id, button in multi_button.states.items():
+                        for _, button in multi_button.states.items():
                             if button.hass_entity:
                                 entity_id = button.hass_entity
                                 await self._async_add_tracked_entity(entity_id, deck_id, page_id, multi_button_id)
