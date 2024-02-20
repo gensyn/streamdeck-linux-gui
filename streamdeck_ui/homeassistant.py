@@ -182,7 +182,8 @@ class HomeAssistant:
 
         try:
             websocket = await websockets.connect(
-                f'{"wss://" if self._ssl else "ws://"}{self._url}:{self._port}{HASS_WEBSOCKET_API}')
+                f'{"wss://" if self._ssl else "ws://"}{self._url}:{self._port}{HASS_WEBSOCKET_API}'
+            )
 
             auth_required = await asyncio.wait_for(websocket.recv(), timeout=5)
             auth_required = _get_field_from_message(auth_required, FIELD_TYPE)
@@ -204,12 +205,14 @@ class HomeAssistant:
         except ConnectionRefusedError as e:
             _LOGGER.error(
                 f'Could not connect to {"wss://" if self._ssl else "ws://"}{self._url}:{self._port}/api/websocket?latest. Make sure'
-                f" 'websocket_api' is enabled in your Home Assistant configuration.")
+                f" 'websocket_api' is enabled in your Home Assistant configuration."
+            )
             pass
         except Exception:
             _LOGGER.error(
                 f'Could not connect to {"wss://" if self._ssl else "ws://"}{self._url}:{self._port}/api/websocket?latest. Make sure'
-                f" 'websocket_api' is enabled in your Home Assistant configuration.")
+                f" 'websocket_api' is enabled in your Home Assistant configuration."
+            )
 
         return websocket
 
@@ -224,8 +227,9 @@ class HomeAssistant:
             message_type = _get_field_from_message(message, FIELD_TYPE)
 
             if FIELD_EVENT == message_type:
-                new_state = json.loads(message).get(FIELD_EVENT, {}).get("variables", {}).get("trigger", {}).get(
-                    "to_state", {})
+                new_state = (
+                    json.loads(message).get(FIELD_EVENT, {}).get("variables", {}).get("trigger", {}).get("to_state", {})
+                )
 
                 entity_id = new_state.get(ENTITY_ID)
 
@@ -261,8 +265,7 @@ class HomeAssistant:
         if not self.connect():
             return ""
 
-        return asyncio.run_coroutine_threadsafe(self._async_get_icon(entity_id, service, state),
-                                                self._loop).result()
+        return asyncio.run_coroutine_threadsafe(self._async_get_icon(entity_id, service, state), self._loop).result()
 
     async def _async_get_icon(self, entity_id: str, service: str, state: str) -> str:
         if not entity_id:
@@ -305,15 +308,17 @@ class HomeAssistant:
 
             color = COLOR_ON if "on" == state else COLOR_OFF
 
-        return icon.replace("<path", f"<path {MDI_TRANSFORM}").replace("<scale>", str(ICON_SCALE)).replace("<color>",
-                                                                                                           color)
+        return (
+            icon.replace("<path", f"<path {MDI_TRANSFORM}")
+            .replace("<scale>", str(ICON_SCALE))
+            .replace("<color>", color)
+        )
 
     def get_state(self, entity_id: str) -> str:
         if not self.connect():
             return ""
 
-        return asyncio.run_coroutine_threadsafe(self._async_get_state(entity_id),
-                                                self._loop).result()
+        return asyncio.run_coroutine_threadsafe(self._async_get_state(entity_id), self._loop).result()
 
     async def _async_get_state(self, entity_id: str) -> str:
         message = self.create_message("get_states")
@@ -400,7 +405,7 @@ class HomeAssistant:
                 "state": entity.get("state", "off"),
                 "icon": entity.get("attributes", {}).get("icon", ""),
                 "buttons": [],
-                "subscription_id": -1
+                "subscription_id": -1,
             }
 
     def get_services(self, domain: str) -> list:
@@ -434,7 +439,8 @@ class HomeAssistant:
 
         for remote_domain in _get_field_from_message(response, "result"):
             self._services[remote_domain] = list(
-                _get_field_from_message(response, "result").get(remote_domain, {}).keys())
+                _get_field_from_message(response, "result").get(remote_domain, {}).keys()
+            )
 
         return self._services.get(domain, [])
 
@@ -450,9 +456,7 @@ class HomeAssistant:
         message = self.create_message("call_service")
         message["domain"] = domain
         message["service"] = service
-        message["target"] = {
-            ENTITY_ID: entity_id
-        }
+        message["target"] = {ENTITY_ID: entity_id}
 
         message_id: int = message[ID]
 
@@ -473,8 +477,9 @@ class HomeAssistant:
         if not self.connect():
             return
 
-        asyncio.run_coroutine_threadsafe(self._async_add_tracked_entity(entity_id, deck_id, page, button),
-                                         self._loop).result()
+        asyncio.run_coroutine_threadsafe(
+            self._async_add_tracked_entity(entity_id, deck_id, page, button), self._loop
+        ).result()
 
     async def _async_add_tracked_entity(self, entity_id: str, deck_id: str, page: int, button: int) -> None:
         if not entity_id:
@@ -524,8 +529,9 @@ class HomeAssistant:
         if not self.connect():
             return
 
-        asyncio.run_coroutine_threadsafe(self._async_remove_tracked_entity(entity_id, deck_id, page, button),
-                                         self._loop).result()
+        asyncio.run_coroutine_threadsafe(
+            self._async_remove_tracked_entity(entity_id, deck_id, page, button), self._loop
+        ).result()
 
     async def _async_remove_tracked_entity(self, entity_id: str, deck_id: str, page: int, button: int) -> None:
         domain = entity_id.split(".")[0]
@@ -562,13 +568,23 @@ class HomeAssistant:
         if not self._loop or not self._loop.is_running():
             return False
 
-        if not self._websocket or self._websocket.closed or not self._entity_change_trigger_websocket or self._entity_change_trigger_websocket.closed:
+        if (
+            not self._websocket
+            or self._websocket.closed
+            or not self._entity_change_trigger_websocket
+            or self._entity_change_trigger_websocket.closed
+        ):
             return False
 
         return asyncio.run_coroutine_threadsafe(self._async_is_connected(), self._loop).result()
 
     async def _async_is_connected(self) -> bool:
-        if not self._websocket or self._websocket.closed or not self._entity_change_trigger_websocket or self._entity_change_trigger_websocket.closed:
+        if (
+            not self._websocket
+            or self._websocket.closed
+            or not self._entity_change_trigger_websocket
+            or self._entity_change_trigger_websocket.closed
+        ):
             return False
 
         a = await is_websocket_alive(self._websocket)

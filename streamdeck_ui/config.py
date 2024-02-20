@@ -1,4 +1,5 @@
 """Defines shared configuration variables for the streamdeck_ui project"""
+
 import json
 import os
 from typing import Dict
@@ -117,7 +118,7 @@ def _to_deck_states(state: dict) -> Dict[str, DeckState]:
             hass_url=deck_state["hass_url"],
             hass_token=deck_state["hass_token"],
             hass_port=deck_state["hass_port"],
-            hass_ssl=deck_state["hass_ssl"]
+            hass_ssl=deck_state["hass_ssl"],
         )
         for deck_id, deck_state in state.items()
     }
@@ -192,7 +193,7 @@ def _to_button_state(button: dict) -> ButtonState:
         background_color=button.get("background_color", ""),
         hass_domain=button.get("hass_domain", ""),
         hass_entity=button.get("hass_entity", ""),
-        hass_service=button.get("hass_service", "")
+        hass_service=button.get("hass_service", ""),
     )
 
 
@@ -221,7 +222,7 @@ def _to_deck_config(state: Dict[str, DeckState]) -> dict:
             "hass_url": deck_state.hass_url,
             "hass_token": deck_state.hass_token,
             "hass_port": deck_state.hass_port,
-            "hass_ssl": deck_state.hass_ssl
+            "hass_ssl": deck_state.hass_ssl,
         }
         for deck_id, deck_state in state.items()
     }
@@ -246,7 +247,7 @@ def _to_button_config(button: ButtonState) -> dict:
         "background_color": button.background_color,
         "hass_domain": button.hass_domain,
         "hass_entity": button.hass_entity,
-        "hass_service": button.hass_service
+        "hass_service": button.hass_service,
     }
 
 

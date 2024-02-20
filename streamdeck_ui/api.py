@@ -1,4 +1,5 @@
 """Defines the Python API for interacting with the StreamDeck Configuration UI"""
+
 import os
 import threading
 from copy import deepcopy
@@ -574,15 +575,20 @@ class StreamDeckServer:
                 domain = hass_entity.split(".")[0]
 
                 if self.hass.is_button_icon(state, domain):
-                    self.set_button_icon(serial_number, page, button,
-                                         self.hass.get_icon(hass_entity,
-                                                            self.get_button_hass_service(serial_number, page, button), state))
+                    self.set_button_icon(
+                        serial_number,
+                        page,
+                        button,
+                        self.hass.get_icon(
+                            hass_entity, self.get_button_hass_service(serial_number, page, button), state
+                        ),
+                    )
                 else:
                     self.set_button_text(serial_number, page, button, state)
             else:
                 self.set_button_icon(serial_number, page, button, "")
                 self.set_button_text(serial_number, page, button, "")
-                #self.hass._main_window.ui.hass_service.setCurrentIndex(0)
+                # self.hass._main_window.ui.hass_service.setCurrentIndex(0)
 
             self._update_button_filters(serial_number, page, button)
             self.synchronize_display_handlers(serial_number)
@@ -608,9 +614,12 @@ class StreamDeckServer:
             domain = hass_entity.split(".")[0]
 
             if self.hass.is_button_icon(state, domain):
-                self.set_button_icon(serial_number, page, button,
-                                     self.hass.get_icon(hass_entity,
-                                                        self.get_button_hass_service(serial_number, page, button), state))
+                self.set_button_icon(
+                    serial_number,
+                    page,
+                    button,
+                    self.hass.get_icon(hass_entity, self.get_button_hass_service(serial_number, page, button), state),
+                )
             else:
                 self.set_button_text(serial_number, page, button, state)
 
