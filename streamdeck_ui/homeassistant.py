@@ -257,7 +257,7 @@ class HomeAssistant:
         await self._websocket.close()
         self._loop.stop()
 
-    def get_icon(self, entity_id: str, service: str, state: str = None) -> str:
+    def get_icon(self, entity_id: str, service: str, state: str = "") -> str:
         if not self.connect():
             return ""
 
@@ -318,7 +318,7 @@ class HomeAssistant:
     async def _async_get_state(self, entity_id: str) -> str:
         message = self.create_message("get_states")
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 
@@ -336,9 +336,9 @@ class HomeAssistant:
 
         return "off"
 
-    def get_domains(self) -> dict:
+    def get_domains(self) -> list:
         if not self.connect():
-            return {}
+            return []
 
         return asyncio.run_coroutine_threadsafe(self._async_get_domains(), self._loop).result()
 
@@ -370,7 +370,7 @@ class HomeAssistant:
     async def _load_domains_and_entities(self) -> None:
         message = self.create_message("get_states")
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 
@@ -418,7 +418,7 @@ class HomeAssistant:
 
         message = self.create_message("get_services")
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 
@@ -454,7 +454,7 @@ class HomeAssistant:
             ENTITY_ID: entity_id
         }
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 

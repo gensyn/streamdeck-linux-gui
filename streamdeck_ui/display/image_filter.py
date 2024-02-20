@@ -24,7 +24,7 @@ class ImageFilter(Filter):
         if file.startswith("<svg "):
             self.file = file
             file_size = len(file)
-            mod_time = datetime.datetime.now()
+            mod_time = datetime.datetime.utcnow().timestamp()
         else:
             self.file = os.path.expanduser(file)
             try:
