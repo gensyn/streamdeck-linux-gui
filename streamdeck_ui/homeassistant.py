@@ -201,7 +201,7 @@ class HomeAssistant:
                 return
         except websockets.ConnectionClosed:
             pass
-        except ConnectionRefusedError as e:
+        except ConnectionRefusedError:
             _LOGGER.error(
                 f'Could not connect to {"wss://" if self._ssl else "ws://"}{self._url}:{self._port}/api/websocket?latest. Make sure'
                 f" 'websocket_api' is enabled in your Home Assistant configuration."
@@ -549,17 +549,7 @@ class HomeAssistant:
         message = self.create_message("unsubscribe_events")
         message["subscription_id"] = entity_settings["subscription_id"]
 
-        message_id = message.get(ID)
-
         await self._entity_change_trigger_websocket.send(json.dumps(message))
-
-        # response = await self._wait_for_response(message_id)
-        #
-        # success = _get_field_from_message(response, FIELD_SUCCESS)
-        #
-        # if not success:
-        #     _LOGGER.error(f"Error unsubscribing from trigger: {entity_id}.")
-        #     return
 
         entity_settings["subscription_id"] = -1
 
