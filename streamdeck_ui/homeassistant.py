@@ -8,7 +8,7 @@ from threading import Thread
 import websockets
 from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 
-from streamdeck_ui_hass.config import PROJECT_PATH
+from streamdeck_ui.config import PROJECT_PATH
 
 _LOGGER = getLogger(__name__)
 
@@ -128,41 +128,39 @@ class HomeAssistant:
             asyncio.create_task(self._async_run_recv_loop())
 
             # listen for events for entities associated with buttons and update icons
-            for deck_id, deck in self._api.state.get("decks", {}).items():
-                for page_id, page in deck["buttons"].items():
-                    for button_id, button in page.items():
-                        if button.get("hass_entity", None):
-                            entity_id = button["hass_entity"]
-                            await self._async_add_tracked_entity(entity_id, deck_id, page_id, button_id)
-
-                            domain = entity_id.split(".")[0]
-
-                            entity_settings = self._entities.get(domain).get(entity_id)
-
-                            if not entity_settings:
-                                # Entität existiert nicht (mehr)
-                                continue
-
-                            buttons = entity_settings.get("buttons")
-
-                            for button_string in buttons:
-                                deck_id, page, button = _decode_deck_id_page_button(button_string)
-
-                                service = self._api.get_button_hass_service(deck_id, page, button)
-
-                                state = await self._async_get_state(entity_id)
+            for deck_id, deck in self._api.state.items():
+                for page_id, page in deck.buttons.items():
+                    for multi_button_id, multi_button in page.items():
+                        for button_id, button in multi_button.states.items():
+                            if button.hass_entity:
+                                entity_id = button.hass_entity
+                                await self._async_add_tracked_entity(entity_id, deck_id, page_id, multi_button_id)
 
                                 domain = entity_id.split(".")[0]
 
-                                if is_button_icon(state, domain):
-                                    icon = await self._async_get_icon(entity_id, service, state)
+                                entity_settings = self._entities.get(domain).get(entity_id)
 
-                                    self._api.set_button_icon(deck_id, page, button, icon)
-                                else:
-                                    self._api.set_button_text(deck_id, page, button, state)
+                                if not entity_settings:
+                                    # Entität existiert nicht (mehr)
+                                    continue
 
-            if self._main_window:
-                self._main_window.ui.label_statusbar.setText("Connected to Home Assistant")
+                                buttons = entity_settings.get("buttons")
+
+                                for button_string in buttons:
+                                    deck_id, page, button = _decode_deck_id_page_button(button_string)
+
+                                    service = self._api.get_button_hass_service(deck_id, page, button)
+
+                                    state = await self._async_get_state(entity_id)
+
+                                    domain = entity_id.split(".")[0]
+
+                                    if self.is_button_icon(state, domain):
+                                        icon = await self._async_get_icon(entity_id, service, state)
+
+                                        self._api.set_button_icon(deck_id, page, button, icon)
+                                    else:
+                                        self._api.set_button_text(deck_id, page, button, state)
 
         if self._main_window:
             self._main_window.hass_connection_changed.emit(is_connected)
@@ -178,9 +176,6 @@ class HomeAssistant:
 
         if self._loop and not self._loop.is_running():
             self._loop.close()
-
-        if self._main_window:
-            self._main_window.ui.label_statusbar.setText("")
 
     async def _async_auth(self):
         websocket = None
@@ -249,7 +244,7 @@ class HomeAssistant:
 
                     domain = entity_id.split(".")[0]
 
-                    if is_button_icon(state, domain):
+                    if self.is_button_icon(state, domain):
                         icon = await self._async_get_icon(entity_id, service, new_state.get("state"))
 
                         self._api.set_button_icon(deck_id, page, button, icon)
@@ -587,8 +582,6 @@ class HomeAssistant:
         path = self._mdi_icons.get(name, "")
 
         if not path:
-            _LOGGER.warning(f"Could not find icon for entity {entity_id}: {name if name else 'None set'}")
-
             path = MDI_DEFAULT_PATH
 
         return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><title>{name}</title><path d="{path}" /></svg>'
@@ -603,9 +596,8 @@ class HomeAssistant:
 
         return response
 
-
-def is_button_icon(state: str, domain: str) -> bool:
-    return state in ["on", "off"] or domain in ["media_player"]
+    def is_button_icon(self, state: str, domain: str) -> bool:
+        return state in ["on", "off"] or domain in ["media_player"]
 
 
 def _encode_deck_id_page_button(deck_id: str, page: int, button: int) -> str:

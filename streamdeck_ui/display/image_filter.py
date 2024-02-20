@@ -1,5 +1,7 @@
+import datetime
 import itertools
 import os
+import time
 from fractions import Fraction
 from io import BytesIO
 from typing import Callable, Tuple
@@ -19,15 +21,21 @@ class ImageFilter(Filter):
 
     def __init__(self, file: str):
         super(ImageFilter, self).__init__()
-        self.file = os.path.expanduser(file)
-        try:
-            file_stats = os.stat(file)
-            file_size = file_stats.st_size
-            mod_time = file_stats.st_mtime
-        except BaseException:
-            file_size = 0
-            mod_time = 0
-            print(f"Unable to load icon {self.file} to calculate stats.")
+
+        if file.startswith("<svg "):
+            self.file = file
+            file_size = len(file)
+            mod_time = datetime.datetime.now()
+        else:
+            self.file = os.path.expanduser(file)
+            try:
+                file_stats = os.stat(file)
+                file_size = file_stats.st_size
+                mod_time = file_stats.st_mtime
+            except BaseException:
+                file_size = 0
+                mod_time = 0
+                print(f"Unable to load icon {self.file} to calculate stats.")
 
         # Create a tuple of the file metadata for creating a hashcode.
         self.metadata = (self.__class__, self.file, file_size, mod_time)
@@ -39,7 +47,7 @@ class ImageFilter(Filter):
         frame_hash = []
 
         try:
-            if "<svg " in self.file:
+            if self.file.startswith("<svg "):
                 png = cairosvg.svg2png(self.file, output_height=size[1], output_width=size[0])
                 image_file = BytesIO(png)
                 image = Image.open(image_file)

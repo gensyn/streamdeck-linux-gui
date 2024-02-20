@@ -16,8 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QComboBox, QDialog,
-    QDialogButtonBox, QFormLayout, QLabel, QSizePolicy,
-    QSlider, QVBoxLayout, QWidget)
+                               QDialogButtonBox, QFormLayout, QLabel, QSizePolicy,
+                               QSlider, QVBoxLayout, QWidget, QLineEdit, QCheckBox)
 from . import resources_rc
 
 class Ui_SettingsDialog(object):
@@ -85,9 +85,47 @@ class Ui_SettingsDialog(object):
 
         self.formLayout.setWidget(3, QFormLayout.FieldRole, self.brightness_dimmed)
 
+        self.label_url = QLabel(SettingsDialog)
+        self.label_url.setObjectName(u"label_url")
+
+        self.formLayout.setWidget(4, QFormLayout.LabelRole, self.label_url)
+
+        self.url = QLineEdit(SettingsDialog)
+        self.url.setObjectName(u"url")
+
+        self.formLayout.setWidget(4, QFormLayout.FieldRole, self.url)
+
+        self.label_token = QLabel(SettingsDialog)
+        self.label_token.setObjectName(u"label_token")
+
+        self.formLayout.setWidget(5, QFormLayout.LabelRole, self.label_token)
+
+        self.token = QLineEdit(SettingsDialog)
+        self.token.setObjectName(u"token")
+
+        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.token)
+
+        self.label_port = QLabel(SettingsDialog)
+        self.label_port.setObjectName(u"label_port")
+
+        self.formLayout.setWidget(6, QFormLayout.LabelRole, self.label_port)
+
+        self.port = QLineEdit(SettingsDialog)
+        self.port.setObjectName(u"port")
+
+        self.formLayout.setWidget(6, QFormLayout.FieldRole, self.port)
+
+        self.label_ssl = QLabel(SettingsDialog)
+        self.label_ssl.setObjectName(u"label_ssl")
+
+        self.formLayout.setWidget(7, QFormLayout.LabelRole, self.label_ssl)
+
+        self.ssl = QCheckBox(SettingsDialog)
+        self.ssl.setObjectName(u"ssl")
+
+        self.formLayout.setWidget(7, QFormLayout.FieldRole, self.ssl)
 
         self.verticalLayout_2.addLayout(self.formLayout)
-
 
         self.verticalLayout.addLayout(self.verticalLayout_2)
 
@@ -98,7 +136,6 @@ class Ui_SettingsDialog(object):
         self.buttonBox.setCenterButtons(False)
 
         self.verticalLayout.addWidget(self.buttonBox)
-
 
         self.retranslateUi(SettingsDialog)
         self.buttonBox.accepted.connect(SettingsDialog.accept)
@@ -115,5 +152,9 @@ class Ui_SettingsDialog(object):
         self.label_dim.setText(QCoreApplication.translate("SettingsDialog", u"Auto dim after:", None))
         self.dim.setCurrentText("")
         self.label_brightness_dimmed.setText(QCoreApplication.translate("SettingsDialog", u"Dim to %:", None))
+        self.label_url.setText(QCoreApplication.translate("SettingsDialog", "HASS URL: ", None))
+        self.label_token.setText(QCoreApplication.translate("SettingsDialog", "HASS Token: ", None))
+        self.label_port.setText(QCoreApplication.translate("SettingsDialog", "HASS Port: ", None))
+        self.label_ssl.setText(QCoreApplication.translate("SettingsDialog", "HASS SSL: ", None))
     # retranslateUi
 

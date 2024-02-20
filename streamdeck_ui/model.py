@@ -32,6 +32,12 @@ class ButtonState:
     """Font size of the text on the button"""
     background_color: str = ""
     """Background color of the button"""
+    hass_domain: str = ""
+    """Home Assistant domain of the button"""
+    hass_entity: str = ""
+    """Home Assistant entity of the button"""
+    hass_service: str = ""
+    """Home Assistant service of the button"""
 
 
 @dataclass
@@ -56,6 +62,14 @@ class DeckState:
     """Rotation of the StreamDeck display"""
     page: int = 0
     """Current displayed page in the StreamDeck"""
+    hass_url: str = ""
+    """Home Assistant URL"""
+    hass_token: str = ""
+    """Home Assistant Token"""
+    hass_port: str = ""
+    """Home Assistant Port"""
+    hass_ssl: bool = False
+    """Home Assistant SSL"""
 
 
 @dataclass

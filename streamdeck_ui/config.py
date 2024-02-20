@@ -114,6 +114,10 @@ def _to_deck_states(state: dict) -> Dict[str, DeckState]:
             brightness_dimmed=deck_state["brightness_dimmed"],
             rotation=deck_state["rotation"],
             page=deck_state["page"],
+            hass_url=deck_state["hass_url"],
+            hass_token=deck_state["hass_token"],
+            hass_port=deck_state["hass_port"],
+            hass_ssl=deck_state["hass_ssl"]
         )
         for deck_id, deck_state in state.items()
     }
@@ -186,6 +190,9 @@ def _to_button_state(button: dict) -> ButtonState:
         font_color=button.get("font_color", ""),
         font_size=button.get("font_size", 0),
         background_color=button.get("background_color", ""),
+        hass_domain=button.get("hass_domain", ""),
+        hass_entity=button.get("hass_entity", ""),
+        hass_service=button.get("hass_service", "")
     )
 
 
@@ -211,6 +218,10 @@ def _to_deck_config(state: Dict[str, DeckState]) -> dict:
             "brightness_dimmed": deck_state.brightness_dimmed,
             "rotation": deck_state.rotation,
             "page": deck_state.page,
+            "hass_url": deck_state.hass_url,
+            "hass_token": deck_state.hass_token,
+            "hass_port": deck_state.hass_port,
+            "hass_ssl": deck_state.hass_ssl
         }
         for deck_id, deck_state in state.items()
     }
@@ -233,6 +244,9 @@ def _to_button_config(button: ButtonState) -> dict:
         "font_color": button.font_color,
         "font_size": button.font_size,
         "background_color": button.background_color,
+        "hass_domain": button.hass_domain,
+        "hass_entity": button.hass_entity,
+        "hass_service": button.hass_service
     }
 
 
