@@ -38,7 +38,6 @@ RECV_LOOP_TIMEOUT = 300
 
 
 class HomeAssistant:
-
     def __init__(self):
         self._api = None
         self._main_window = None

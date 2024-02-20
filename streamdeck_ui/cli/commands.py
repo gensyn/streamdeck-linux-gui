@@ -5,7 +5,8 @@ from streamdeck_ui.ui_main import Ui_MainWindow
 
 
 class Command(tp.Protocol):
-    def execute(self, api: StreamDeckServer, ui: tp.Any) -> None: ...
+    def execute(self, api: StreamDeckServer, ui: tp.Any) -> None:
+        ...
 
 
 class SetPageCommand:
