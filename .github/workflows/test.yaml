@@ -92,7 +92,7 @@ jobs:
       #    run test suite and output coverage file   
       #----------------------------------------------
       - name: Test
-        run: bash -c "poetry run pytest tests/ -s --cov=streamdeck_ui_hass/ --cov-report=term-missing ${@-}"
+        run: bash -c "poetry run pytest tests/ -s --cov=streamdeck_ui/ --cov-report=term-missing ${@-}"
       #----------------------------------------------
       #            generate coverage stats              
       #----------------------------------------------
