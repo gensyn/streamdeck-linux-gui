@@ -60,6 +60,9 @@ def create_test_api_server() -> TestableStreamDeckServer:
             },
         ),
     }
+
+    api.hass = MagicMock()
+
     # we don't want to save the state to disk
     api._save_state = MagicMock()
     api.export_config = MagicMock()
