@@ -6,7 +6,7 @@ from logging import getLogger
 from threading import Thread
 
 import websockets
-from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
+from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from streamdeck_ui.config import PROJECT_PATH
 
