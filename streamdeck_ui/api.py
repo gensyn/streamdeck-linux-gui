@@ -96,7 +96,7 @@ class StreamDeckServer:
         self.streamdeck_keys = KeySignalEmitter()
         self.plugevents = StreamDeckSignalEmitter()
 
-        self.hass: HomeAssistant = None
+        self.hass: HomeAssistant
 
         self.button_clicked = False
 
