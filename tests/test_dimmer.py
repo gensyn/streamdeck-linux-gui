@@ -1,7 +1,6 @@
 from time import sleep
 
 import pytest
-
 from dimmer import Dimmer
 
 

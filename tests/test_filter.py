@@ -2,7 +2,6 @@ import os
 from fractions import Fraction
 
 import pytest
-
 from display import empty_filter, image_filter, pipeline
 
 

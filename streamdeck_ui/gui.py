@@ -8,7 +8,7 @@ from subprocess import Popen  # nosec - Need to allow users to specify arbitrary
 from typing import Dict, List, Optional, Union
 
 from importlib_metadata import PackageNotFoundError, version
-from PySide6.QtCore import QMimeData, QSettings, QSignalBlocker, QSize, Qt, QTimer, QUrl, Slot, Signal
+from PySide6.QtCore import QMimeData, QSettings, QSignalBlocker, QSize, Qt, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QDrag, QFont, QIcon, QPalette
 from PySide6.QtWidgets import (
     QApplication,
