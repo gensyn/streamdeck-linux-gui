@@ -1,7 +1,7 @@
 import threading
 from time import sleep
 
-from stream_deck_monitor import StreamDeckMonitor
+from streamdeck_ui.stream_deck_monitor import StreamDeckMonitor
 
 
 def test_start_stop():
