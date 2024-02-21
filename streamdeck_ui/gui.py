@@ -1,4 +1,5 @@
 """Defines the QT powered interface for configuring Stream Decks"""
+
 import os
 import shlex
 import signal
@@ -1124,7 +1125,7 @@ class MainWindow(QMainWindow):
         self.window_shown = True
         self.settings = QSettings("streamdeck-ui", "streamdeck-ui")
         self.restoreGeometry(self.settings.value("geometry", self.saveGeometry()))
-        #self.hass_connection_changed.connect(partial(enable_hass_configuration, self.ui))
+        # self.hass_connection_changed.connect(partial(enable_hass_configuration, self.ui))
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Part of QT signature.
         self.settings.setValue("geometry", self.saveGeometry())
