@@ -6,7 +6,7 @@ from logging import getLogger
 from threading import Thread
 
 import websockets
-from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
+from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from streamdeck_ui.config import PROJECT_PATH
 
@@ -38,7 +38,6 @@ RECV_LOOP_TIMEOUT = 300
 
 
 class HomeAssistant:
-
     def __init__(self):
         self._api = None
         self._main_window = None
@@ -131,7 +130,7 @@ class HomeAssistant:
             for deck_id, deck in self._api.state.items():
                 for page_id, page in deck.buttons.items():
                     for multi_button_id, multi_button in page.items():
-                        for button_id, button in multi_button.states.items():
+                        for _, button in multi_button.states.items():
                             if button.hass_entity:
                                 entity_id = button.hass_entity
                                 await self._async_add_tracked_entity(entity_id, deck_id, page_id, multi_button_id)
@@ -182,7 +181,8 @@ class HomeAssistant:
 
         try:
             websocket = await websockets.connect(
-                f'{"wss://" if self._ssl else "ws://"}{self._url}:{self._port}{HASS_WEBSOCKET_API}')
+                f'{"wss://" if self._ssl else "ws://"}{self._url}:{self._port}{HASS_WEBSOCKET_API}'
+            )
 
             auth_required = await asyncio.wait_for(websocket.recv(), timeout=5)
             auth_required = _get_field_from_message(auth_required, FIELD_TYPE)
@@ -201,15 +201,17 @@ class HomeAssistant:
                 return
         except websockets.ConnectionClosed:
             pass
-        except ConnectionRefusedError as e:
+        except ConnectionRefusedError:
             _LOGGER.error(
                 f'Could not connect to {"wss://" if self._ssl else "ws://"}{self._url}:{self._port}/api/websocket?latest. Make sure'
-                f" 'websocket_api' is enabled in your Home Assistant configuration.")
+                f" 'websocket_api' is enabled in your Home Assistant configuration."
+            )
             pass
         except Exception:
             _LOGGER.error(
                 f'Could not connect to {"wss://" if self._ssl else "ws://"}{self._url}:{self._port}/api/websocket?latest. Make sure'
-                f" 'websocket_api' is enabled in your Home Assistant configuration.")
+                f" 'websocket_api' is enabled in your Home Assistant configuration."
+            )
 
         return websocket
 
@@ -224,8 +226,9 @@ class HomeAssistant:
             message_type = _get_field_from_message(message, FIELD_TYPE)
 
             if FIELD_EVENT == message_type:
-                new_state = json.loads(message).get(FIELD_EVENT, {}).get("variables", {}).get("trigger", {}).get(
-                    "to_state", {})
+                new_state = (
+                    json.loads(message).get(FIELD_EVENT, {}).get("variables", {}).get("trigger", {}).get("to_state", {})
+                )
 
                 entity_id = new_state.get(ENTITY_ID)
 
@@ -257,12 +260,11 @@ class HomeAssistant:
         await self._websocket.close()
         self._loop.stop()
 
-    def get_icon(self, entity_id: str, service: str, state: str = None) -> str:
+    def get_icon(self, entity_id: str, service: str, state: str = "") -> str:
         if not self.connect():
             return ""
 
-        return asyncio.run_coroutine_threadsafe(self._async_get_icon(entity_id, service, state),
-                                                self._loop).result()
+        return asyncio.run_coroutine_threadsafe(self._async_get_icon(entity_id, service, state), self._loop).result()
 
     async def _async_get_icon(self, entity_id: str, service: str, state: str) -> str:
         if not entity_id:
@@ -305,20 +307,22 @@ class HomeAssistant:
 
             color = COLOR_ON if "on" == state else COLOR_OFF
 
-        return icon.replace("<path", f"<path {MDI_TRANSFORM}").replace("<scale>", str(ICON_SCALE)).replace("<color>",
-                                                                                                           color)
+        return (
+            icon.replace("<path", f"<path {MDI_TRANSFORM}")
+            .replace("<scale>", str(ICON_SCALE))
+            .replace("<color>", color)
+        )
 
     def get_state(self, entity_id: str) -> str:
         if not self.connect():
             return ""
 
-        return asyncio.run_coroutine_threadsafe(self._async_get_state(entity_id),
-                                                self._loop).result()
+        return asyncio.run_coroutine_threadsafe(self._async_get_state(entity_id), self._loop).result()
 
     async def _async_get_state(self, entity_id: str) -> str:
         message = self.create_message("get_states")
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 
@@ -336,9 +340,9 @@ class HomeAssistant:
 
         return "off"
 
-    def get_domains(self) -> dict:
+    def get_domains(self) -> list:
         if not self.connect():
-            return {}
+            return []
 
         return asyncio.run_coroutine_threadsafe(self._async_get_domains(), self._loop).result()
 
@@ -370,7 +374,7 @@ class HomeAssistant:
     async def _load_domains_and_entities(self) -> None:
         message = self.create_message("get_states")
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 
@@ -400,7 +404,7 @@ class HomeAssistant:
                 "state": entity.get("state", "off"),
                 "icon": entity.get("attributes", {}).get("icon", ""),
                 "buttons": [],
-                "subscription_id": -1
+                "subscription_id": -1,
             }
 
     def get_services(self, domain: str) -> list:
@@ -418,7 +422,7 @@ class HomeAssistant:
 
         message = self.create_message("get_services")
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 
@@ -434,7 +438,8 @@ class HomeAssistant:
 
         for remote_domain in _get_field_from_message(response, "result"):
             self._services[remote_domain] = list(
-                _get_field_from_message(response, "result").get(remote_domain, {}).keys())
+                _get_field_from_message(response, "result").get(remote_domain, {}).keys()
+            )
 
         return self._services.get(domain, [])
 
@@ -450,11 +455,9 @@ class HomeAssistant:
         message = self.create_message("call_service")
         message["domain"] = domain
         message["service"] = service
-        message["target"] = {
-            ENTITY_ID: entity_id
-        }
+        message["target"] = {ENTITY_ID: entity_id}
 
-        message_id = message.get(ID)
+        message_id: int = message[ID]
 
         await self._websocket.send(json.dumps(message))
 
@@ -473,8 +476,9 @@ class HomeAssistant:
         if not self.connect():
             return
 
-        asyncio.run_coroutine_threadsafe(self._async_add_tracked_entity(entity_id, deck_id, page, button),
-                                         self._loop).result()
+        asyncio.run_coroutine_threadsafe(
+            self._async_add_tracked_entity(entity_id, deck_id, page, button), self._loop
+        ).result()
 
     async def _async_add_tracked_entity(self, entity_id: str, deck_id: str, page: int, button: int) -> None:
         if not entity_id:
@@ -524,8 +528,9 @@ class HomeAssistant:
         if not self.connect():
             return
 
-        asyncio.run_coroutine_threadsafe(self._async_remove_tracked_entity(entity_id, deck_id, page, button),
-                                         self._loop).result()
+        asyncio.run_coroutine_threadsafe(
+            self._async_remove_tracked_entity(entity_id, deck_id, page, button), self._loop
+        ).result()
 
     async def _async_remove_tracked_entity(self, entity_id: str, deck_id: str, page: int, button: int) -> None:
         domain = entity_id.split(".")[0]
@@ -544,17 +549,7 @@ class HomeAssistant:
         message = self.create_message("unsubscribe_events")
         message["subscription_id"] = entity_settings["subscription_id"]
 
-        message_id = message.get(ID)
-
         await self._entity_change_trigger_websocket.send(json.dumps(message))
-
-        # response = await self._wait_for_response(message_id)
-        #
-        # success = _get_field_from_message(response, FIELD_SUCCESS)
-        #
-        # if not success:
-        #     _LOGGER.error(f"Error unsubscribing from trigger: {entity_id}.")
-        #     return
 
         entity_settings["subscription_id"] = -1
 
@@ -562,13 +557,23 @@ class HomeAssistant:
         if not self._loop or not self._loop.is_running():
             return False
 
-        if not self._websocket or self._websocket.closed or not self._entity_change_trigger_websocket or self._entity_change_trigger_websocket.closed:
+        if (
+            not self._websocket
+            or self._websocket.closed
+            or not self._entity_change_trigger_websocket
+            or self._entity_change_trigger_websocket.closed
+        ):
             return False
 
         return asyncio.run_coroutine_threadsafe(self._async_is_connected(), self._loop).result()
 
     async def _async_is_connected(self) -> bool:
-        if not self._websocket or self._websocket.closed or not self._entity_change_trigger_websocket or self._entity_change_trigger_websocket.closed:
+        if (
+            not self._websocket
+            or self._websocket.closed
+            or not self._entity_change_trigger_websocket
+            or self._entity_change_trigger_websocket.closed
+        ):
             return False
 
         a = await is_websocket_alive(self._websocket)
@@ -627,17 +632,3 @@ async def is_websocket_alive(websocket):
     except TimeoutError:
         # The connection is closed or the ping wasn't answered in time
         return False
-
-# ha = HomeAssistant()
-# ha.set_main_window(MagicMock())
-# ha.set_url("homeassistant.gensyn.de")
-# ha.set_token(
-#     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhODFjMjFhNDk5OGM0NzFhYjI5ZGE5ZmYzMTczNmI4ZSIsImlhdCI6MTY3ODk5NjQ1NCwiZXhwIjoxOTk0MzU2NDU0fQ.VH4bwZh3Xcdfe9pLZnENz9_tHow0s7O5xmsUr3t7CW4")
-# ha.set_port("443")
-# ha.set_ssl(True)
-# test = ha.get_domains()
-# test2 = ha.get_entities("light")
-# test3 = ha.get_services("automation")
-# test = ha.get_icon("media_player.test", "media_previous_track", "paused")
-# pass
-# ha.disconnect()
