@@ -571,7 +571,11 @@ class StreamDeckServer:
             self._save_state()
 
             if hass_entity:
-                state = self.hass.get_state(hass_entity)
+                entity_state = self.hass.get_state(hass_entity)
+                state = entity_state.get("state")
+                unit_of_measurement = entity_state.get("attributes", {}).get("unit_of_measurement", "")
+                if unit_of_measurement:
+                    unit_of_measurement = f"\n{unit_of_measurement}"
                 domain = hass_entity.split(".")[0]
 
                 if self.hass.is_button_icon(state, domain):
@@ -584,7 +588,7 @@ class StreamDeckServer:
                         ),
                     )
                 else:
-                    self.set_button_text(serial_number, page, button, state)
+                    self.set_button_text(serial_number, page, button, f"{state}{unit_of_measurement}")
             else:
                 self.set_button_icon(serial_number, page, button, "")
                 self.set_button_text(serial_number, page, button, "")
@@ -610,7 +614,11 @@ class StreamDeckServer:
             self._save_state()
 
             hass_entity = self.get_button_hass_entity(serial_number, page, button)
-            state = self.hass.get_state(hass_entity)
+            entity_state = self.hass.get_state(hass_entity)
+            state = entity_state.get("state")
+            unit_of_measurement = entity_state.get("attributes", {}).get("unit_of_measurement", "")
+            if unit_of_measurement:
+                unit_of_measurement = f"\n{unit_of_measurement}"
             domain = hass_entity.split(".")[0]
 
             if self.hass.is_button_icon(state, domain):
@@ -621,7 +629,7 @@ class StreamDeckServer:
                     self.hass.get_icon(hass_entity, self.get_button_hass_service(serial_number, page, button), state),
                 )
             else:
-                self.set_button_text(serial_number, page, button, state)
+                self.set_button_text(serial_number, page, button, f"{state}{unit_of_measurement}")
 
     def get_button_hass_service(self, serial_number: str, page: int, button: int) -> str:
         """Returns the Home Assistant service set for the specified button"""

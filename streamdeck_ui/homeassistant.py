@@ -150,7 +150,14 @@ class HomeAssistant:
 
                                     service = self._api.get_button_hass_service(deck_id, page, button)
 
-                                    state = await self._async_get_state(entity_id)
+                                    entity_state = await self._async_get_state(entity_id)
+
+                                    state = entity_state.get("state")
+
+                                    unit_of_measurement = entity_state.get("attributes", {}).get("unit_of_measurement", "")
+
+                                    if unit_of_measurement:
+                                        unit_of_measurement = f"\n{unit_of_measurement}"
 
                                     domain = entity_id.split(".")[0]
 
@@ -159,7 +166,7 @@ class HomeAssistant:
 
                                         self._api.set_button_icon(deck_id, page, button, icon)
                                     else:
-                                        self._api.set_button_text(deck_id, page, button, state)
+                                        self._api.set_button_text(deck_id, page, button, f"{state}{unit_of_measurement}")
 
         if self._main_window:
             self._main_window.hass_connection_changed.emit(is_connected)
@@ -245,6 +252,11 @@ class HomeAssistant:
 
                     state = new_state.get("state")
 
+                    unit_of_measurement = new_state.get("attributes", {}).get("unit_of_measurement", "")
+
+                    if unit_of_measurement:
+                        unit_of_measurement = f"\n{unit_of_measurement}"
+
                     domain = entity_id.split(".")[0]
 
                     if self.is_button_icon(state, domain):
@@ -252,7 +264,7 @@ class HomeAssistant:
 
                         self._api.set_button_icon(deck_id, page, button, icon)
                     else:
-                        self._api.set_button_text(deck_id, page, button, state)
+                        self._api.set_button_text(deck_id, page, button, f"{state}{unit_of_measurement}")
 
                     if self._main_window and self._api.display_handlers.get(deck_id, False):
                         self._main_window.redraw_buttons()
@@ -313,13 +325,13 @@ class HomeAssistant:
             .replace("<color>", color)
         )
 
-    def get_state(self, entity_id: str) -> str:
+    def get_state(self, entity_id: str) -> dict:
         if not self.connect():
-            return ""
+            return {}
 
         return asyncio.run_coroutine_threadsafe(self._async_get_state(entity_id), self._loop).result()
 
-    async def _async_get_state(self, entity_id: str) -> str:
+    async def _async_get_state(self, entity_id: str) -> dict:
         message = self.create_message("get_states")
 
         message_id: int = message[ID]
@@ -332,13 +344,13 @@ class HomeAssistant:
 
         if not success:
             _LOGGER.error(f"Error retrieving state for {entity_id}.")
-            return "off"
+            return {"state": "off"}
 
         for entity in _get_field_from_message(response, "result"):
             if entity.get(ENTITY_ID, "") == entity_id:
-                return entity.get("state", "off")
+                return entity
 
-        return "off"
+        return {"state": "off"}
 
     def get_domains(self) -> list:
         if not self.connect():
